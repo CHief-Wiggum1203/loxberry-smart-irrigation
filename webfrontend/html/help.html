@@ -1,0 +1,451 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hilfe - Smart Irrigation</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        }
+        h1 {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            font-size: 32px;
+            margin-bottom: 20px;
+        }
+        h2 {
+            color: #667eea;
+            font-size: 24px;
+            margin: 30px 0 15px 0;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #e5e7eb;
+        }
+        h3 {
+            color: #764ba2;
+            font-size: 18px;
+            margin: 20px 0 10px 0;
+        }
+        p, li {
+            color: #666;
+            line-height: 1.6;
+            margin-bottom: 10px;
+        }
+        .code-block {
+            background: #f3f4f6;
+            border-left: 4px solid #667eea;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 15px 0;
+            overflow-x: auto;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+        }
+        .info-box {
+            background: #e0e7ff;
+            padding: 15px;
+            border-radius: 10px;
+            margin: 15px 0;
+            border-left: 4px solid #667eea;
+        }
+        .warning-box {
+            background: #fef3c7;
+            padding: 15px;
+            border-radius: 10px;
+            margin: 15px 0;
+            border-left: 4px solid #f59e0b;
+        }
+        .success-box {
+            background: #d1fae5;
+            padding: 15px;
+            border-radius: 10px;
+            margin: 15px 0;
+            border-left: 4px solid #10b981;
+        }
+        .back-button {
+            display: inline-block;
+            padding: 12px 24px;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            text-decoration: none;
+            border-radius: 10px;
+            margin-top: 20px;
+            font-weight: 600;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 15px 0;
+        }
+        th, td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #e5e7eb;
+        }
+        th {
+            background: #f3f4f6;
+            color: #667eea;
+            font-weight: 600;
+        }
+        ul {
+            margin-left: 20px;
+        }
+        .toc {
+            background: #f9fafb;
+            padding: 20px;
+            border-radius: 10px;
+            margin: 20px 0;
+        }
+        .toc a {
+            color: #667eea;
+            text-decoration: none;
+            display: block;
+            padding: 5px 0;
+        }
+        .toc a:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>📚 Smart Irrigation - Hilfe & Dokumentation</h1>
+        
+        <div class="toc">
+            <strong>Inhaltsverzeichnis:</strong>
+            <a href="#funktionen">1. Funktionsübersicht</a>
+            <a href="#loxone-setup">2. Loxone Einrichtung</a>
+            <a href="#mqtt-setup">3. MQTT Konfiguration</a>
+            <a href="#api-befehle">4. API Befehle</a>
+            <a href="#automatik">5. Automatische Bewässerung</a>
+            <a href="#troubleshooting">6. Fehlerbehebung</a>
+        </div>
+
+        <h2 id="funktionen">1. Funktionsübersicht</h2>
+        
+        <h3>🌿 Zonen-Verwaltung</h3>
+        <p>Das System unterstützt bis zu 12 individuelle Bewässerungszonen. Jede Zone kann einzeln gesteuert werden.</p>
+        <ul>
+            <li><strong>Manuelle Steuerung:</strong> Zonen direkt über die Web-App ein/ausschalten</li>
+            <li><strong>Timer:</strong> Automatisches Stoppen nach eingestellter Zeit</li>
+            <li><strong>Feuchtigkeitssensoren:</strong> Echtzeit-Monitoring per MQTT</li>
+            <li><strong>Schwellwerte:</strong> Individuelle Bewässerungsgrenzen pro Zone</li>
+        </ul>
+
+        <h3>🤖 Automatische Bewässerung</h3>
+        <div class="info-box">
+            <strong>Smart Mode:</strong> Das System bewässert automatisch wenn die Bodenfeuchtigkeit unter den eingestellten Schwellwert fällt.
+        </div>
+        <p>Aktivierung pro Zone über "MQTT Konfiguration" → Checkbox "Automatische Bewässerung"</p>
+
+        <h3>📊 MQTT Integration</h3>
+        <p>Verbindung zu Feuchtigkeitssensoren über MQTT-Broker (z.B. Mosquitto auf LoxBerry)</p>
+
+        <h2 id="loxone-setup">2. Loxone Miniserver Einrichtung</h2>
+
+        <h3>Schritt 1: Benutzer anlegen</h3>
+        <div class="code-block">
+1. Loxone Config öffnen
+2. Benutzer & Rechte → Benutzer hinzufügen
+3. Benutzername: irrigation_app
+4. Passwort festlegen (sicher!)
+5. Rechte aktivieren:
+   ✓ Web Services
+   ✓ Visualisierung
+   ✓ Werte ändern
+   ✓ Status abfragen
+6. In Miniserver laden (F6)
+        </div>
+
+        <h3>Schritt 2: Virtuelle Ausgänge (Ventile)</h3>
+        <p>Für jede Zone einen virtuellen Ausgang erstellen:</p>
+        <div class="code-block">
+Name: IrrigationValve1 bis IrrigationValve12
+Typ: Virtueller Ausgang (Digital)
+Verwendung: Bewässerungsventil
+        </div>
+        
+        <div class="info-box">
+            <strong>Tipp:</strong> Die Namen MÜSSEN exakt "IrrigationValve" + Nummer sein, damit die App sie findet!
+        </div>
+
+        <h3>Schritt 3: Virtuelle Eingänge (Sensoren - optional)</h3>
+        <div class="code-block">
+Name: IrrigationMoisture1 bis IrrigationMoisture12
+Typ: Virtueller Eingang (Analog)
+Einheit: %
+Minimum: 0
+Maximum: 100
+        </div>
+
+        <h3>Schritt 4: Programmierung im Loxone Config</h3>
+        <p><strong>Beispiel für Zone 1:</strong></p>
+        <div class="code-block">
+[IrrigationValve1] → [Relais/Schaltaktor] → [Magnetventil physisch]
+                  ↓
+            [Timer/Watchdog]
+                  ↓
+        Sicherheitsabschaltung nach 60 Min
+        </div>
+
+        <div class="warning-box">
+            <strong>⚠️ Wichtig:</strong> Immer einen Watchdog einbauen! Falls die Kommunikation abbricht, 
+            sollen die Ventile nach max. 60 Minuten automatisch schließen.
+        </div>
+
+        <h3>Loxone HTTP-Befehle</h3>
+        <p>Das System sendet folgende Befehle an den Miniserver:</p>
+        
+        <table>
+            <thead>
+                <tr>
+                    <th>Aktion</th>
+                    <th>HTTP-Befehl</th>
+                    <th>Beispiel</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>Zone einschalten</td>
+                    <td>GET /dev/sps/io/IrrigationValve1/On</td>
+                    <td>Ventil 1 öffnen</td>
+                </tr>
+                <tr>
+                    <td>Zone ausschalten</td>
+                    <td>GET /dev/sps/io/IrrigationValve1/Off</td>
+                    <td>Ventil 1 schließen</td>
+                </tr>
+                <tr>
+                    <td>Status abfragen</td>
+                    <td>GET /dev/sps/io/IrrigationValve1/state</td>
+                    <td>Ist Ventil offen?</td>
+                </tr>
+                <tr>
+                    <td>Alle Ventile aus</td>
+                    <td>GET /dev/sps/io/IrrigationValve*/Off</td>
+                    <td>Notaus</td>
+                </tr>
+            </tbody>
+        </table>
+
+        <div class="success-box">
+            <strong>Vollständige URL:</strong><br>
+            http://irrigation_app:PASSWORT@192.168.1.XXX/dev/sps/io/IrrigationValve1/On
+        </div>
+
+        <h2 id="mqtt-setup">3. MQTT Konfiguration</h2>
+
+        <h3>Mosquitto Broker auf LoxBerry</h3>
+        <div class="code-block">
+1. LoxBerry Plugin Manager öffnen
+2. "MQTT Gateway" installieren
+3. Standard-Port: 1883
+4. Benutzer/Passwort optional für lokales Netzwerk
+        </div>
+
+        <h3>Topic-Struktur</h3>
+        <table>
+            <thead>
+                <tr>
+                    <th>Topic</th>
+                    <th>Payload</th>
+                    <th>Beschreibung</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>irrigation/sensor/IrrigationMoisture1</td>
+                    <td>0-100 (Zahl)</td>
+                    <td>Feuchtigkeitswert in %</td>
+                </tr>
+                <tr>
+                    <td>irrigation/zone/1/status</td>
+                    <td>on / off</td>
+                    <td>Status der Zone</td>
+                </tr>
+                <tr>
+                    <td>irrigation/zone/1/command</td>
+                    <td>start / stop</td>
+                    <td>Befehl an Zone</td>
+                </tr>
+            </tbody>
+        </table>
+
+        <h3>ESP32 Sensor-Beispiel (Arduino)</h3>
+        <div class="code-block">
+#include &lt;WiFi.h&gt;
+#include &lt;PubSubClient.h&gt;
+
+const char* mqtt_server = "192.168.1.XXX";
+const char* topic = "irrigation/sensor/IrrigationMoisture1";
+
+void loop() {
+    int moisture = analogRead(34); // Sensor Pin
+    int percent = map(moisture, 0, 4095, 0, 100);
+    
+    client.publish(topic, String(percent).c_str());
+    delay(60000); // Alle 60 Sekunden
+}
+        </div>
+
+        <h2 id="api-befehle">4. API Befehle</h2>
+
+        <h3>REST API Endpoints</h3>
+        <table>
+            <thead>
+                <tr>
+                    <th>Methode</th>
+                    <th>Endpoint</th>
+                    <th>Beschreibung</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>GET</td>
+                    <td>/api/zones</td>
+                    <td>Alle Zonen abrufen</td>
+                </tr>
+                <tr>
+                    <td>POST</td>
+                    <td>/api/zones/:id/start</td>
+                    <td>Zone starten (Body: {"duration": 10})</td>
+                </tr>
+                <tr>
+                    <td>POST</td>
+                    <td>/api/zones/:id/stop</td>
+                    <td>Zone stoppen</td>
+                </tr>
+                <tr>
+                    <td>PUT</td>
+                    <td>/api/zones/:id</td>
+                    <td>Zone-Einstellungen ändern</td>
+                </tr>
+                <tr>
+                    <td>GET</td>
+                    <td>/api/weather</td>
+                    <td>Aktuelle Wetterdaten</td>
+                </tr>
+                <tr>
+                    <td>POST</td>
+                    <td>/api/backup</td>
+                    <td>Backup erstellen</td>
+                </tr>
+            </tbody>
+        </table>
+
+        <h3>Curl Beispiele</h3>
+        <div class="code-block">
+# Zone 1 für 15 Minuten starten
+curl -X POST http://LOXBERRY-IP/api/zones/1/start \
+  -H "Content-Type: application/json" \
+  -d '{"duration": 15}'
+
+# Zone 1 stoppen
+curl -X POST http://LOXBERRY-IP/api/zones/1/stop
+
+# Alle Zonen abfragen
+curl http://LOXBERRY-IP/api/zones
+
+# Wetter abrufen
+curl http://LOXBERRY-IP/api/weather
+        </div>
+
+        <h2 id="automatik">5. Automatische Bewässerung</h2>
+
+        <h3>Funktionsweise</h3>
+        <div class="info-box">
+            Das System prüft alle 5 Minuten die Bodenfeuchtigkeit und startet automatisch die Bewässerung wenn:
+            <ul style="margin-top: 10px;">
+                <li>✓ Automatische Bewässerung aktiviert</li>
+                <li>✓ Feuchtigkeit &lt; Schwellwert</li>
+                <li>✓ Keine Regenwahrscheinlichkeit &gt;70%</li>
+                <li>✓ Zone nicht bereits aktiv</li>
+            </ul>
+        </div>
+
+        <h3>Einstellung pro Zone</h3>
+        <div class="code-block">
+1. Setup → MQTT Konfiguration öffnen
+2. Zone auswählen
+3. Schwellwert einstellen (z.B. 30%)
+4. Optimaler Wert einstellen (z.B. 60%)
+5. Checkbox "Automatische Bewässerung" aktivieren
+6. Speichern
+        </div>
+
+        <h3>Bewässerungsdauer berechnen</h3>
+        <p>Das System berechnet die Dauer automatisch:</p>
+        <div class="code-block">
+Fehlende Feuchtigkeit = Optimal - Aktuell
+Beispiel: 60% - 25% = 35%
+
+Dauer = (35% / 10%) × 2 Minuten = 7 Minuten
+        </div>
+
+        <h2 id="troubleshooting">6. Fehlerbehebung</h2>
+
+        <h3>Problem: "Connection Refused"</h3>
+        <div class="code-block">
+# Server-Status prüfen
+sudo systemctl status irrigation
+
+# Logs anzeigen
+sudo journalctl -u irrigation -f
+
+# Server neu starten
+sudo systemctl restart irrigation
+        </div>
+
+        <h3>Problem: Loxone antwortet nicht</h3>
+        <ul>
+            <li>Benutzer in Loxone Config prüfen</li>
+            <li>Rechte kontrollieren (Web Services!)</li>
+            <li>In Miniserver laden (F6)</li>
+            <li>30 Sekunden warten</li>
+            <li>IP-Adresse korrekt?</li>
+        </ul>
+
+        <h3>Problem: MQTT Sensoren zeigen keine Werte</h3>
+        <div class="code-block">
+# Mosquitto testen
+mosquitto_sub -h localhost -t "irrigation/#" -v
+
+# Test-Wert senden
+mosquitto_pub -h localhost -t "irrigation/sensor/IrrigationMoisture1" -m "45"
+        </div>
+
+        <h3>Problem: Automatik funktioniert nicht</h3>
+        <ul>
+            <li>Checkbox "Automatische Bewässerung" aktiviert?</li>
+            <li>Sensor sendet Daten? (MQTT Config prüfen)</li>
+            <li>Schwellwert richtig eingestellt?</li>
+            <li>Server-Logs prüfen: <code>sudo journalctl -u irrigation -f</code></li>
+        </ul>
+
+        <div class="warning-box">
+            <strong>Support:</strong><br>
+            Bei Problemen die Server-Logs speichern und im LoxForum posten:<br>
+            <code>sudo journalctl -u irrigation -n 100 &gt; irrigation-log.txt</code>
+        </div>
+
+        <a href="/" class="back-button">← Zurück zur Hauptseite</a>
+    </div>
+</body>
+</html>

@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MQTT Konfiguration</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        .container { max-width: 600px; margin: 0 auto; }
+        .card {
+            background: white;
+            border-radius: 16px;
+            padding: 25px;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+        }
+        .title {
+            font-size: 24px;
+            font-weight: 700;
+            color: #333;
+            margin-bottom: 20px;
+        }
+        .status-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 14px;
+            font-weight: 600;
+            margin-bottom: 20px;
+        }
+        .status-badge.connected { background: #dcfce7; color: #166534; }
+        .status-badge.disconnected { background: #fee2e2; color: #991b1b; }
+        .form-group { margin-bottom: 20px; }
+        .form-label {
+            display: block;
+            font-size: 14px;
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 8px;
+        }
+        .form-input {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e5e7eb;
+            border-radius: 8px;
+            font-size: 14px;
+        }
+        .btn {
+            width: 100%;
+            padding: 14px;
+            border: none;
+            border-radius: 12px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+        }
+        .btn-secondary {
+            background: #f3f4f6;
+            color: #333;
+            margin-top: 10px;
+        }
+        .zone-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px;
+            background: #f9fafb;
+            border-radius: 8px;
+            margin-bottom: 10px;
+        }
+        .sensor-input {
+            width: 200px;
+            padding: 6px 10px;
+            border: 1px solid #e5e7eb;
+            border-radius: 6px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="card">
+            <div class="title">📡 MQTT Konfiguration</div>
+            <div class="status-badge disconnected" id="statusBadge">
+                <span id="statusText">Nicht verbunden</span>
+            </div>
+
+            <form onsubmit="saveMqttConfig(event)">
+                <div class="form-group">
+                    <label class="form-label">Broker URL</label>
+                    <input type="text" class="form-input" id="broker" 
+                           placeholder="mqtt://192.168.1.XXX:1883" required>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Benutzername</label>
+                    <input type="text" class="form-input" id="username">
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Passwort</label>
+                    <input type="password" class="form-input" id="password">
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Base Topic</label>
+                    <input type="text" class="form-input" id="baseTopic" value="irrigation">
+                </div>
+
+                <button type="submit" class="btn btn-primary">Speichern</button>
+            </form>
+        </div>
+
+        <div class="card">
+            <div class="title">🌿 Sensor-Zuordnung</div>
+            <div id="zonesList">Lade Zonen...</div>
+        </div>
+
+        <button class="btn btn-secondary" onclick="window.location.href='/'">
+            Zurück
+        </button>
+    </div>
+
+    <script>
+        const apiBase = window.location.origin;
+
+        async function init() {
+            await loadMqttStatus();
+            await loadZones();
+        }
+
+        async function loadMqttStatus() {
+            try {
+                const res = await fetch(apiBase + '/api/mqtt/status');
+                const status = await res.json();
+                
+                document.getElementById('broker').value = status.broker || '';
+                document.getElementById('baseTopic').value = status.baseTopic || 'irrigation';
+                
+                const badge = document.getElementById('statusBadge');
+                const text = document.getElementById('statusText');
+                
+                if (status.connected) {
+                    badge.className = 'status-badge connected';
+                    text.textContent = 'Verbunden';
+                } else {
+                    badge.className = 'status-badge disconnected';
+                    text.textContent = 'Nicht verbunden';
+                }
+            } catch (error) {
+                console.error('Fehler:', error);
+            }
+        }
+
+
+
+async function loadZones() {
+            try {
+                const res = await fetch(apiBase + '/api/zones');
+                const zones = await res.json();
+                const container = document.getElementById('zonesList');
+                container.innerHTML = zones.map(zone => `
+                    <div class="zone-item" style="display: block; padding: 20px; margin-bottom: 15px;">
+                        <div style="display: flex; justify-content: space-between; margin-bottom: 15px;">
+                            <div>
+                                <div style="font-weight: 600; font-size: 16px;">${zone.name}</div>
+                                <div style="font-size: 12px; color: #666;">Sensor: ${zone.loxone_input || 'Kein Sensor'}</div>
+                            </div>
+                            <div style="text-align: right;">
+                                <div style="font-size: 12px; color: #666;">Aktuell</div>
+                                <div style="font-size: 20px; font-weight: 700; color: #667eea;">${zone.moisture || '--'}%</div>
+                            </div>
+                        </div>
+                        
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                            <div>
+                                <label style="font-size: 12px; color: #666; display: block; margin-bottom: 5px;">
+                                    Schwellwert (bewässern unter)
+                                </label>
+                                <input type="number" class="sensor-input" min="0" max="100"
+                                       value="${zone.moisture_threshold || 30}"
+                                       onchange="updateZoneSettings(${zone.id}, 'moisture_threshold', this.value)">
+                            </div>
+                            <div>
+                                <label style="font-size: 12px; color: #666; display: block; margin-bottom: 5px;">
+                                    Optimal (Zielwert)
+                                </label>
+                                <input type="number" class="sensor-input" min="0" max="100"
+                                       value="${zone.moisture_optimal || 60}"
+                                       onchange="updateZoneSettings(${zone.id}, 'moisture_optimal', this.value)">
+                            </div>
+                        </div>
+
+                        
+                        <div style="margin-top: 15px; padding: 10px; background: #f0f9ff; border-radius: 8px;">
+                            <label style="display: flex; align-items: center; gap: 10px; cursor: pointer;">
+                                <input type="checkbox" ${zone.auto_water_enabled ? 'checked' : ''}
+                                       onchange="updateZoneSettings(${zone.id}, 'auto_water_enabled', this.checked)"
+                                 style="width: 20px; height: 20px;">
+                                <span style="font-size: 14px; font-weight: 500;">🤖 Automatische Bewässerung</span>
+                            </label>
+                            <div style="font-size: 11px; color: #0369a1; margin-left: 30px; margin-top: 5px;">
+                                Bewässert automatisch wenn unter ${zone.moisture_threshold || 30}% und kein Regen erwartet
+                            </div>
+                        </div>
+                    </div>
+                `).join('');
+            } catch (error) {
+                console.error('Fehler:', error);
+            }
+        }
+
+        async function updateZoneSettings(zoneId, field, value) {
+            try {
+                const data = {};
+                if (field === 'auto_water_enabled') {
+                    data[field] = value ? 1 : 0;
+                } else {
+                    data[field] = parseInt(value);
+                }
+                
+                const res = await fetch(`${apiBase}/api/zones/${zoneId}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data)
+                });
+
+                if (res.ok) {
+                    showNotification('Einstellung gespeichert', 'success');
+                    await loadZones();
+                } else {
+                    showNotification('Fehler beim Speichern', 'error');
+                }
+            } catch (error) {
+                showNotification('Verbindungsfehler', 'error');
+            }
+        }
+
+
+function showNotification(message, type = 'success') {
+            const notif = document.createElement('div');
+            notif.style.cssText = `
+                position: fixed;
+                top: 20px;
+                right: 20px;
+                padding: 15px 20px;
+                border-radius: 12px;
+                background: ${type === 'success' ? '#dcfce7' : '#fee2e2'};
+                color: ${type === 'success' ? '#166534' : '#991b1b'};
+                box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+                z-index: 1000;
+                font-weight: 600;
+            `;
+            notif.textContent = message;
+            document.body.appendChild(notif);
+            setTimeout(() => notif.remove(), 3000);
+        }
+
+        init();
+
+        init();
+    </script>
+</body>
+</html>
+EOF

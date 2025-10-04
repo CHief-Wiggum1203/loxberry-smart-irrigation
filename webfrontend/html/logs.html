@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>System Logs - Smart Irrigation</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: 'Courier New', monospace;
+            background: #1e1e1e;
+            color: #d4d4d4;
+            padding: 20px;
+        }
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+        .header {
+            background: #2d2d30;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .title {
+            font-size: 24px;
+            font-weight: bold;
+            color: #4ec9b0;
+        }
+        .controls {
+            display: flex;
+            gap: 10px;
+        }
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s;
+        }
+        .btn-primary {
+            background: #0e639c;
+            color: white;
+        }
+        .btn-primary:hover {
+            background: #1177bb;
+        }
+        .btn-secondary {
+            background: #3c3c3c;
+            color: white;
+        }
+        .btn-secondary:hover {
+            background: #505050;
+        }
+        .log-container {
+            background: #1e1e1e;
+            border: 1px solid #3c3c3c;
+            border-radius: 8px;
+            padding: 20px;
+            height: calc(100vh - 200px);
+            overflow-y: auto;
+            font-size: 13px;
+            line-height: 1.5;
+        }
+        .log-line {
+            padding: 2px 0;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+        .log-line:hover {
+            background: #2d2d30;
+        }
+        .log-error {
+            color: #f48771;
+        }
+        .log-warning {
+            color: #dcdcaa;
+        }
+        .log-success {
+            color: #4ec9b0;
+        }
+        .log-info {
+            color: #569cd6;
+        }
+        .timestamp {
+            color: #858585;
+        }
+        .back-link {
+            display: inline-block;
+            margin-top: 15px;
+            color: #569cd6;
+            text-decoration: none;
+        }
+        .back-link:hover {
+            text-decoration: underline;
+        }
+        .filter-bar {
+            background: #2d2d30;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 15px;
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+        .filter-bar select, .filter-bar input {
+            padding: 8px 12px;
+            background: #3c3c3c;
+            border: 1px solid #555;
+            border-radius: 4px;
+            color: #d4d4d4;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div class="title">📋 System Logs</div>
+            <div class="controls">
+                <button class="btn btn-secondary" onclick="clearLogs()">🗑️ Clear</button>
+                <button class="btn btn-primary" onclick="refreshLogs()">🔄 Refresh</button>
+                <label style="display: flex; align-items: center; gap: 8px; color: #d4d4d4;">
+                    <input type="checkbox" id="autoRefresh" onchange="toggleAutoRefresh(this.checked)">
+                    Auto-Refresh (5s)
+                </label>
+            </div>
+        </div>
+
+        <div class="filter-bar">
+            <label style="color: #d4d4d4;">Zeilen:</label>
+            <select id="lineCount" onchange="refreshLogs()">
+                <option value="50">50</option>
+                <option value="100" selected>100</option>
+                <option value="200">200</option>
+                <option value="500">500</option>
+            </select>
+            <label style="color: #d4d4d4;">Filter:</label>
+            <input type="text" id="filterText" placeholder="Suche..." oninput="filterLogs()">
+        </div>
+
+        <div class="log-container" id="logContainer">
+            <div style="text-align: center; color: #858585; padding: 50px;">
+                Lade Logs...
+            </div>
+        </div>
+
+        <a href="/" class="back-link">← Zurück zur Hauptseite</a>
+    </div>
+
+    <script>
+        let autoRefreshInterval = null;
+        let allLogs = [];
+
+        async function refreshLogs() {
+            const lineCount = document.getElementById('lineCount').value;
+            
+            try {
+                const response = await fetch(`/api/logs?lines=${lineCount}`);
+                const data = await response.json();
+                
+                if (data.success) {
+                    allLogs = data.logs;
+                    displayLogs(allLogs);
+                } else {
+                    document.getElementById('logContainer').innerHTML = 
+                        `<div style="color: #f48771;">Fehler beim Laden der Logs: ${data.error}</div>`;
+                }
+            } catch (error) {
+                document.getElementById('logContainer').innerHTML = 
+                    `<div style="color: #f48771;">Verbindungsfehler: ${error.message}</div>`;
+            }
+        }
+
+        function displayLogs(logs) {
+            const container = document.getElementById('logContainer');
+            
+            if (logs.length === 0) {
+                container.innerHTML = '<div style="text-align: center; color: #858585;">Keine Logs vorhanden</div>';
+                return;
+            }
+
+            container.innerHTML = logs.map(log => {
+                let className = 'log-line';
+                
+                if (log.includes('ERROR') || log.includes('❌') || log.includes('Fehler')) {
+                    className += ' log-error';
+                } else if (log.includes('WARN') || log.includes('⚠️')) {
+                    className += ' log-warning';
+                } else if (log.includes('✅') || log.includes('SUCCESS')) {
+                    className += ' log-success';
+                } else if (log.includes('📡') || log.includes('🌤️') || log.includes('INFO')) {
+                    className += ' log-info';
+                }
+
+                return `<div class="${className}">${escapeHtml(log)}</div>`;
+            }).join('');
+
+            // Auto-scroll nach unten
+            container.scrollTop = container.scrollHeight;
+        }
+
+        function filterLogs() {
+            const filterText = document.getElementById('filterText').value.toLowerCase();
+            
+            if (!filterText) {
+                displayLogs(allLogs);
+                return;
+            }
+
+            const filtered = allLogs.filter(log => 
+                log.toLowerCase().includes(filterText)
+            );
+            
+            displayLogs(filtered);
+        }
+
+        function clearLogs() {
+            document.getElementById('logContainer').innerHTML = 
+                '<div style="text-align: center; color: #858585;">Logs gecleart (Refresh für neue)</div>';
+        }
+
+        function toggleAutoRefresh(enabled) {
+            if (enabled) {
+                autoRefreshInterval = setInterval(refreshLogs, 5000);
+            } else {
+                if (autoRefreshInterval) {
+                    clearInterval(autoRefreshInterval);
+                    autoRefreshInterval = null;
+                }
+            }
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        // Initial load
+        refreshLogs();
+    </script>
+</body>
+</html>

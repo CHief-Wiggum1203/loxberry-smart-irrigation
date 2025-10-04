@@ -1,0 +1,103 @@
+{
+  "initialized": true,
+  "loxone": {
+    "host": "192.168.1.XXX",
+    "username": "DEIN_LOXONE_USER",
+    "password": "DEIN_PASSWORT"
+  },
+  "weather": {
+    "provider": "open-meteo",
+    "apiKey": "",
+    "lat": XXX,
+    "lon": XXX,
+    "rainThreshold": 70,
+    "enabled": true
+  },
+  "zones": [
+    {
+      "id": 1,
+      "name": "Zone 1",
+      "valve": "IrrigationValve1",
+      "sensor": "IrrigationMoisture1"
+    },
+    {
+      "id": 2,
+      "name": "Zone 2",
+      "valve": "IrrigationValve2",
+      "sensor": "IrrigationMoisture2"
+    },
+    {
+      "id": 3,
+      "name": "Zone 3",
+      "valve": "IrrigationValve3",
+      "sensor": "IrrigationMoisture3"
+    },
+    {
+      "id": 4,
+      "name": "Zone 4",
+      "valve": "IrrigationValve4",
+      "sensor": "IrrigationMoisture4"
+    },
+    {
+      "id": 5,
+      "name": "Zone 5",
+      "valve": "IrrigationValve5",
+      "sensor": "IrrigationMoisture5"
+    },
+    {
+      "id": 6,
+      "name": "Zone 6",
+      "valve": "IrrigationValve6",
+      "sensor": "IrrigationMoisture6"
+    },
+    {
+      "id": 7,
+      "name": "Zone 7",
+      "valve": "IrrigationValve7",
+      "sensor": "IrrigationMoisture7"
+    },
+    {
+      "id": 8,
+      "name": "Zone 8",
+      "valve": "IrrigationValve8",
+      "sensor": "IrrigationMoisture8"
+    },
+    {
+      "id": 9,
+      "name": "Zone 9",
+      "valve": "IrrigationValve9",
+      "sensor": "IrrigationMoisture9"
+    },
+    {
+      "id": 10,
+      "name": "Zone 10",
+      "valve": "IrrigationValve10",
+      "sensor": "IrrigationMoisture10"
+    },
+    {
+      "id": 11,
+      "name": "Zone 11",
+      "valve": "IrrigationValve11",
+      "sensor": "IrrigationMoisture11"
+    },
+    {
+      "id": 12,
+      "name": "Zone 12",
+      "valve": "IrrigationValve12",
+      "sensor": "IrrigationMoisture12"
+    }
+  ],
+  "setup_complete": true,
+  "mqtt": {
+    "enabled": true,
+    "broker": "http://192.168.1.XXX:1883",
+    "username": "MQTT_USER",
+    "password": "MQTT_PASSWORT",
+    "baseTopic": "irrigation",
+    "connected": true
+  },
+  "winterMode": {
+    "enabled": false,
+    "activatedAt": null
+  }
+}

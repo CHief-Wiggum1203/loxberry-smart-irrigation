@@ -1,0 +1,758 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <title>Garten Bewässerung</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: #333;
+            padding-bottom: 80px;
+        }
+
+        .app-header {
+            background: rgba(255, 255, 255, 0.98);
+            backdrop-filter: blur(20px);
+            padding: 20px;
+            box-shadow: 0 2px 20px rgba(0,0,0,0.1);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .header-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .app-title {
+            font-size: 28px;
+            font-weight: 700;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .connection-status {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 16px;
+            background: #4ade80;
+            color: white;
+            border-radius: 20px;
+            font-size: 14px;
+            font-weight: 600;
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            background: white;
+            border-radius: 50%;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        .weather-card {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            margin: 20px;
+            padding: 25px;
+            border-radius: 20px;
+            color: white;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            position: relative;
+        }
+
+        .weather-refresh {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: rgba(255,255,255,0.2);
+            border: none;
+            color: white;
+            padding: 8px 12px;
+            border-radius: 10px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+
+        .weather-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .weather-temp {
+            font-size: 48px;
+            font-weight: 700;
+        }
+
+        .weather-icon {
+            font-size: 48px;
+        }
+
+        .weather-details {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 15px;
+            margin-top: 20px;
+        }
+
+        .weather-detail {
+            text-align: center;
+            background: rgba(255, 255, 255, 0.2);
+            padding: 12px;
+            border-radius: 12px;
+            backdrop-filter: blur(10px);
+        }
+
+        .detail-label {
+            font-size: 12px;
+            opacity: 0.9;
+            margin-bottom: 4px;
+        }
+
+        .detail-value {
+            font-size: 18px;
+            font-weight: 600;
+        }
+
+        .weather-warning {
+            margin-top: 15px;
+            padding: 12px;
+            background: rgba(239, 68, 68, 0.9);
+            border-radius: 10px;
+            font-size: 14px;
+            font-weight: 600;
+            text-align: center;
+        }
+
+        .quick-actions {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 15px;
+            margin: 20px;
+        }
+
+        .quick-action {
+            background: white;
+            padding: 20px;
+            border-radius: 16px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .quick-action:active {
+            transform: scale(0.95);
+        }
+
+        .quick-action-icon {
+            font-size: 32px;
+            margin-bottom: 8px;
+        }
+
+        .quick-action-title {
+            font-size: 16px;
+            font-weight: 600;
+            color: #333;
+        }
+
+        .quick-action-subtitle {
+            font-size: 12px;
+            color: #666;
+            margin-top: 4px;
+        }
+
+        .zones-section {
+            margin: 20px;
+        }
+
+        .section-title {
+            font-size: 20px;
+            font-weight: 600;
+            color: white;
+            margin-bottom: 15px;
+        }
+
+        .zone-card {
+            background: white;
+            border-radius: 16px;
+            padding: 20px;
+            margin-bottom: 15px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+
+        .zone-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+
+        .zone-info {
+            flex: 1;
+        }
+
+        .zone-name {
+            font-size: 18px;
+            font-weight: 600;
+            color: #333;
+        }
+
+        .zone-status {
+            font-size: 12px;
+            color: #666;
+            margin-top: 4px;
+        }
+
+        .zone-toggle {
+            width: 51px;
+            height: 31px;
+            background: #e5e7eb;
+            border-radius: 16px;
+            position: relative;
+            cursor: pointer;
+            transition: background 0.3s ease;
+        }
+
+        .zone-toggle.active {
+            background: #4ade80;
+        }
+
+        .toggle-handle {
+            position: absolute;
+            top: 2px;
+            left: 2px;
+            width: 27px;
+            height: 27px;
+            background: white;
+            border-radius: 50%;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+            transition: transform 0.3s ease;
+        }
+
+        .zone-toggle.active .toggle-handle {
+            transform: translateX(20px);
+        }
+
+        .zone-details {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+        }
+
+        .zone-detail {
+            text-align: center;
+            padding: 10px;
+            background: #f3f4f6;
+            border-radius: 8px;
+        }
+
+        .zone-detail-label {
+            font-size: 11px;
+            color: #666;
+            margin-bottom: 4px;
+        }
+
+        .zone-detail-value {
+            font-size: 16px;
+            font-weight: 600;
+            color: #333;
+        }
+
+        .moisture-bar {
+            margin-top: 15px;
+        }
+
+        .moisture-label {
+            font-size: 12px;
+            color: #666;
+            margin-bottom: 5px;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .moisture-track {
+            height: 8px;
+            background: #e5e7eb;
+            border-radius: 4px;
+            overflow: hidden;
+        }
+
+        .moisture-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #ef4444, #eab308, #4ade80);
+            border-radius: 4px;
+            transition: width 0.5s ease;
+        }
+
+        .bottom-nav {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: rgba(255, 255, 255, 0.98);
+            backdrop-filter: blur(20px);
+            display: flex;
+            justify-content: space-around;
+            padding: 10px 0 30px 0;
+            box-shadow: 0 -2px 20px rgba(0,0,0,0.1);
+        }
+
+        .nav-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 8px 20px;
+            cursor: pointer;
+            color: #9ca3af;
+        }
+
+        .nav-item.active {
+            color: #667eea;
+        }
+
+        .nav-icon {
+            font-size: 24px;
+            margin-bottom: 4px;
+        }
+
+        .nav-label {
+            font-size: 11px;
+            font-weight: 500;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: white;
+        }
+    </style>
+</head>
+<body>
+    <div class="app-header">
+        <div class="header-content">
+            <div class="app-title">🌱 Garten Bewässerung</div>
+            <div class="connection-status" id="connectionStatus">
+                <span class="status-dot"></span>
+                <span>Verbinde...</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="weather-card">
+        <button class="weather-refresh" onclick="refreshWeather()">🔄</button>
+        <div style="font-size: 14px; opacity: 0.9; margin-bottom: 10px;" id="weatherLocation">📍 Lade Standort...</div>
+        <div class="weather-header">
+            <div>
+                <div class="weather-temp" id="weatherTemp">--°C</div>
+                <div style="opacity: 0.9;" id="weatherDesc">Lade Wetter...</div>
+            </div>
+            <div class="weather-icon" id="weatherIcon">⏳</div>
+        </div>
+        <div class="weather-details">
+            <div class="weather-detail">
+                <div class="detail-label">Heute</div>
+                <div class="detail-value" id="rainToday">--%</div>
+            </div>
+            <div class="weather-detail">
+                <div class="detail-label">Morgen</div>
+                <div class="detail-value" id="rainTomorrow">--%</div>
+            </div>
+            <div class="weather-detail">
+                <div class="detail-label">Übermorgen</div>
+                <div class="detail-value" id="rainDay3">--%</div>
+            </div>
+        </div>
+        <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-top: 15px;">
+            <div class="weather-detail">
+                <div class="detail-label">Feuchtigkeit</div>
+                <div class="detail-value" id="humidity">--%</div>
+            </div>
+            <div class="weather-detail">
+                <div class="detail-label">Wind</div>
+                <div class="detail-value" id="windSpeed">-- km/h</div>
+            </div>
+        </div>
+        <div id="weatherWarning" style="display: none;" class="weather-warning">
+            ⚠️ Hohe Regenwahrscheinlichkeit - Bewässerung wird pausiert
+        </div>
+    </div>
+
+    <div class="quick-actions">
+        <div class="quick-action" onclick="window.location.href='/sequences.html'">
+            <div class="quick-action-icon">🔄</div>
+            <div class="quick-action-title">Sequenzen</div>
+            <div class="quick-action-subtitle">Reihenfolge bewässern</div>
+        </div>
+        <div class="quick-action" onclick="stopAllZones()">
+            <div class="quick-action-icon">⏸️</div>
+            <div class="quick-action-title">Alle stoppen</div>
+            <div class="quick-action-subtitle">Sofort beenden</div>
+        </div>
+        <div class="quick-action" onclick="window.location.href='/schedules.html'">
+            <div class="quick-action-icon">📅</div>
+            <div class="quick-action-title">Zeitpläne</div>
+            <div class="quick-action-subtitle">Automatisch bewässern</div>
+        </div>
+        <div class="quick-action" onclick="window.location.href='/setup.html'">
+            <div class="quick-action-icon">⚙️</div>
+            <div class="quick-action-title">Einstellung</div>
+            <div class="quick-action-subtitle">Konfiguration</div>
+        </div>
+    </div>
+
+    <div class="zones-section">
+        <div class="section-title">Bewässerungszonen</div>
+        <div id="zonesContainer">
+            <div class="loading">Lade Zonen...</div>
+        </div>
+    </div>
+
+    <div class="bottom-nav">
+        <div class="nav-item active">
+            <div class="nav-icon">🏠</div>
+            <div class="nav-label">Home</div>
+        </div>
+        <div class="nav-item" onclick="window.location.href='/sequences.html'">
+            <div class="nav-icon">🔄</div>
+            <div class="nav-label">Sequenzen</div>
+        </div>
+        <div class="nav-item" onclick="window.location.href='/schedules.html'">
+            <div class="nav-icon">⏰</div>
+            <div class="nav-label">Zeitplan</div>
+        </div>
+        <div class="nav-item" onclick="window.location.href='/setup.html'">
+            <div class="nav-icon">⚙️</div>
+            <div class="nav-label">Einstellung</div>
+        </div>
+
+<div class="nav-item" onclick="window.location.href='/help.html'">
+            <div class="nav-icon">❓</div>
+            <div class="nav-label">Hilfe</div>
+        </div>
+
+    </div>
+
+    <script>
+        let zones = [];
+        let apiBase = window.location.origin;
+
+        // Initialisierung
+        async function init() {
+            updateConnectionStatus(true);
+            await loadZones();
+            await loadWeather();
+            
+            // Update alle 30 Sekunden
+            setInterval(loadZones, 30000);
+            // Wetter alle 5 Minuten
+            setInterval(loadWeather, 300000);
+        }
+
+        // Zonen laden
+        async function loadZones() {
+            try {
+                const response = await fetch(apiBase + '/api/zones');
+                const data = await response.json();
+                
+                zones = data;
+                renderZones();
+                updateConnectionStatus(true);
+            } catch (error) {
+                console.error('Fehler beim Laden der Zonen:', error);
+                updateConnectionStatus(false);
+            }
+        }
+
+        // Zonen rendern
+        function renderZones() {
+            const container = document.getElementById('zonesContainer');
+            
+            if (zones.length === 0) {
+                container.innerHTML = '<div class="loading">Keine Zonen konfiguriert</div>';
+                return;
+            }
+
+            container.innerHTML = zones.map(zone => `
+                <div class="zone-card" data-zone-id="${zone.id}">
+                    <div class="zone-header">
+                        <div class="zone-info">
+                            <div class="zone-name">🌿 ${zone.name}</div>
+                            <div class="zone-status">${zone.is_active ? 'Läuft...' : 'Inaktiv'}</div>
+                        </div>
+                        <div class="zone-toggle ${zone.is_active ? 'active' : ''}" onclick="toggleZone(${zone.id}, this)">
+                            <div class="toggle-handle"></div>
+                        </div>
+                    </div>
+                    <div class="zone-details">
+                        <div class="zone-detail">
+                            <div class="zone-detail-label">Ventil</div>
+                            <div class="zone-detail-value">${zone.loxone_output?.replace('IrrigationValve', 'V')}</div>
+                        </div>
+                        <div class="zone-detail">
+                            <div class="zone-detail-label">Zuletzt</div>
+                            <div class="zone-detail-value">${zone.last_watered ? formatDate(zone.last_watered) : 'Nie'}</div>
+                        </div>
+                        <div class="zone-detail">
+                            <div class="zone-detail-label">Status</div>
+                            <div class="zone-detail-value">${zone.is_active ? '▶️' : '⏸️'}</div>
+                        </div>
+                    </div>
+                    ${zone.moisture ? `
+                    <div class="moisture-bar">
+                        <div class="moisture-label">
+                            <span>Bodenfeuchtigkeit</span>
+                            <span>${zone.moisture}%</span>
+                        </div>
+                        <div class="moisture-track">
+                            <div class="moisture-fill" style="width: ${zone.moisture}%"></div>
+                        </div>
+                    </div>
+                    ` : ''}
+                </div>
+            `).join('');
+        }
+
+        function formatDate(dateStr) {
+            const date = new Date(dateStr);
+            const now = new Date();
+            const diff = now - date;
+            const hours = Math.floor(diff / 1000 / 60 / 60);
+            
+            if (hours < 1) return 'Gerade';
+            if (hours < 24) return `${hours}h`;
+            const days = Math.floor(hours / 24);
+            return `${days}d`;
+        }
+
+        // Zone umschalten
+        async function toggleZone(zoneId, element) {
+            const isActive = element.classList.contains('active');
+            
+            try {
+                if (isActive) {
+                    await fetch(apiBase + `/api/zones/${zoneId}/stop`, { method: 'POST' });
+                    element.classList.remove('active');
+                    showNotification('Zone gestoppt');
+                } else {
+
+const response = await fetch(apiBase + `/api/zones/${zoneId}/start`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({})
+});
+
+                    const result = await response.json();
+                    
+                    if (result.success) {
+                        element.classList.add('active');
+                        showNotification(result.message);
+                    } else {
+                        showNotification('Fehler: ' + result.error, 'error');
+                    }
+                }
+                
+                setTimeout(loadZones, 2000);
+            } catch (error) {
+                showNotification('Verbindungsfehler', 'error');
+                console.error(error);
+            }
+        }
+
+        // Alle Zonen stoppen
+        async function stopAllZones() {
+            if (!confirm('Alle aktiven Zonen stoppen?')) return;
+            
+            try {
+                const response = await fetch(apiBase + '/api/zones/stopall', { method: 'POST' });
+                const result = await response.json();
+                
+                showNotification(result.message);
+                setTimeout(loadZones, 2000);
+            } catch (error) {
+                showNotification('Verbindungsfehler', 'error');
+            }
+        }
+
+        // Wetter laden
+        async function loadWeather() {
+            try {
+                const response = await fetch(apiBase + '/api/weather/current');
+                const data = await response.json();
+                
+                if (data.error) {
+                    // Wetter nicht konfiguriert - Mock-Daten
+                    document.getElementById('weatherLocation').textContent = '📍 Wetter nicht konfiguriert';
+                    document.getElementById('weatherTemp').textContent = '--°C';
+                    document.getElementById('weatherDesc').textContent = 'Wetter nicht konfiguriert';
+                    document.getElementById('weatherIcon').textContent = '⚙️';
+                    document.getElementById('rainToday').textContent = '--%';
+                    document.getElementById('rainTomorrow').textContent = '--%';
+                    document.getElementById('rainDay3').textContent = '--%';
+                    document.getElementById('humidity').textContent = '--%';
+                    document.getElementById('windSpeed').textContent = '-- km/h';
+                    return;
+                }
+                
+                // Standort anzeigen
+                if (data.location) {
+                    document.getElementById('weatherLocation').textContent = '📍 ' + data.location;
+                } else {
+                    document.getElementById('weatherLocation').textContent = '📍 Standort';
+                }
+                
+                // Echte Wetterdaten anzeigen
+                document.getElementById('weatherTemp').textContent = data.current.temperature + '°C';
+                document.getElementById('weatherDesc').textContent = data.current.description;
+                document.getElementById('weatherIcon').textContent = data.current.icon;
+                document.getElementById('humidity').textContent = data.current.humidity + '%';
+                document.getElementById('windSpeed').textContent = data.current.windSpeed + ' km/h';
+                
+                // Regenvorhersage für 3 Tage
+                if (data.forecast.daily) {
+                    document.getElementById('rainToday').textContent = data.forecast.daily[0] + '%';
+                    document.getElementById('rainTomorrow').textContent = data.forecast.daily[1] + '%';
+                    document.getElementById('rainDay3').textContent = data.forecast.daily[2] + '%';
+                } else {
+                    // Fallback für alte API-Version
+                    document.getElementById('rainToday').textContent = data.forecast.rainProbability + '%';
+                    document.getElementById('rainTomorrow').textContent = '--%';
+                    document.getElementById('rainDay3').textContent = '--%';
+                }
+                
+                // Warnung bei hoher Regenwahrscheinlichkeit
+                const warningEl = document.getElementById('weatherWarning');
+                const maxRain = data.forecast.daily ? Math.max(...data.forecast.daily) : data.forecast.rainProbability;
+                if (maxRain >= 70 || data.forecast.willRain) {
+                    warningEl.style.display = 'block';
+                } else {
+                    warningEl.style.display = 'none';
+                }
+                
+            } catch (error) {
+                console.error('Fehler beim Laden der Wetterdaten:', error);
+            }
+        }
+
+        // Wetter manuell aktualisieren
+        async function refreshWeather() {
+            try {
+                showNotification('Aktualisiere Wetter...');
+                const response = await fetch(apiBase + '/api/weather/refresh', { method: 'POST' });
+                const result = await response.json();
+                
+                if (result.success) {
+                    await loadWeather();
+                    showNotification('Wetter aktualisiert');
+                } else {
+                    showNotification('Fehler: ' + result.error, 'error');
+                }
+            } catch (error) {
+                showNotification('Verbindungsfehler', 'error');
+            }
+        }
+
+        // Verbindungsstatus
+        function updateConnectionStatus(connected) {
+            const status = document.getElementById('connectionStatus');
+            if (connected) {
+                status.innerHTML = '<span class="status-dot"></span><span>Verbunden</span>';
+                status.style.background = '#4ade80';
+            } else {
+                status.innerHTML = '<span class="status-dot"></span><span>Getrennt</span>';
+                status.style.background = '#ef4444';
+            }
+        }
+
+        // Benachrichtigungen
+        function showNotification(message, type = 'success') {
+            const notification = document.createElement('div');
+            notification.style.cssText = `
+                position: fixed;
+                top: 100px;
+                left: 50%;
+                transform: translateX(-50%);
+                background: ${type === 'error' ? '#ef4444' : 'white'};
+                color: ${type === 'error' ? 'white' : '#333'};
+                padding: 15px 30px;
+                border-radius: 30px;
+                box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+                z-index: 1000;
+                font-weight: 600;
+            `;
+            notification.textContent = message;
+            document.body.appendChild(notification);
+            
+            setTimeout(() => notification.remove(), 3000);
+        }
+
+        
+
+
+// WebSocket Verbindung
+        (function() {
+            let ws = null;
+            
+            function connect() {
+                try {
+                    ws = new WebSocket(`ws://${window.location.hostname}:3001`);
+                    
+                    ws.onopen = function() {
+                        console.log('WebSocket verbunden');
+                    };
+                    
+                    ws.onmessage = function(event) {
+                        try {
+                            const message = JSON.parse(event.data);
+                            if (message.type === 'moisture_update' || message.type === 'zone_update') {
+                                loadZones();
+                            }
+                        } catch (e) {
+                            console.error('WebSocket Message Error:', e);
+                        }
+                    };
+                    
+                    ws.onerror = function(error) {
+                        console.log('WebSocket Error');
+                    };
+                    
+                    ws.onclose = function() {
+                        console.log('WebSocket getrennt, reconnect in 5s');
+                        setTimeout(connect, 5000);
+                    };
+                } catch (e) {
+                    console.error('WebSocket Init Error:', e);
+                    setTimeout(connect, 5000);
+                }
+            }
+            
+            connect();
+        })();
+
+        // App starten
+        init();
+    </script>
+</body>
+</html>

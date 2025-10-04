@@ -1,0 +1,703 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Setup - Garten Bewässerung</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        .header {
+            background: white;
+            padding: 30px;
+            border-radius: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+
+        .header-title {
+            font-size: 32px;
+            font-weight: 700;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 10px;
+        }
+
+        .header-subtitle {
+            color: #666;
+            font-size: 16px;
+        }
+
+        .section {
+            background: white;
+            padding: 30px;
+            border-radius: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+
+        .section-title {
+            font-size: 24px;
+            font-weight: 700;
+            color: #333;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-label {
+            display: block;
+            font-size: 14px;
+            font-weight: 600;
+            color: #666;
+            margin-bottom: 8px;
+        }
+
+        .form-input, .form-select {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e5e7eb;
+            border-radius: 10px;
+            font-size: 16px;
+            transition: border 0.3s ease;
+        }
+
+        .form-input:focus, .form-select:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .form-checkbox {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .form-checkbox input {
+            width: 20px;
+            height: 20px;
+            cursor: pointer;
+        }
+
+        .btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .btn-primary {
+            background: #667eea;
+            color: white;
+            width: 100%;
+        }
+
+        .btn-primary:hover {
+            background: #5568d3;
+            transform: translateY(-2px);
+        }
+
+        .btn-secondary {
+            background: #e5e7eb;
+            color: #333;
+            margin-right: 10px;
+        }
+
+        .info-box {
+            background: #f3f4f6;
+            padding: 15px;
+            border-radius: 10px;
+            margin-top: 10px;
+            font-size: 14px;
+            color: #666;
+        }
+
+        .info-box strong {
+            color: #333;
+        }
+
+        .success {
+            background: #4ade80;
+            color: white;
+            padding: 15px;
+            border-radius: 10px;
+            margin-top: 20px;
+            text-align: center;
+        }
+
+        .error {
+            background: #ef4444;
+            color: white;
+            padding: 15px;
+            border-radius: 10px;
+            margin-top: 20px;
+            text-align: center;
+        }
+
+        .zone-list {
+            display: grid;
+            gap: 10px;
+        }
+
+        .zone-item {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .zone-item input {
+            flex: 1;
+        }
+
+        .zone-number {
+            width: 50px;
+            text-align: center;
+            font-weight: 600;
+            color: #667eea;
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        .provider-badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            margin-left: 10px;
+        }
+
+        .badge-free {
+            background: #4ade80;
+            color: white;
+        }
+
+        .badge-optional {
+            background: #fbbf24;
+            color: #78350f;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div class="header-title">🌱 Setup & Konfiguration</div>
+            <div class="header-subtitle">Loxone-Verbindung, Wetter-API und Zonen einrichten</div>
+        </div>
+
+        <!-- Loxone Konfiguration -->
+        <div class="section">
+            <div class="section-title">🏠 Loxone Miniserver</div>
+            
+            <div class="form-group">
+                <label class="form-label">Miniserver IP-Adresse</label>
+                <input type="text" class="form-input" id="loxoneHost" placeholder="192.168.1.XXX">
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">Benutzername</label>
+                <input type="text" class="form-input" id="loxoneUsername" placeholder="irrigation_app">
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">Passwort</label>
+                <input type="password" class="form-input" id="loxonePassword">
+            </div>
+
+            <button class="btn btn-secondary" onclick="testLoxoneConnection()">Verbindung testen</button>
+            
+            <div id="loxoneTestResult"></div>
+        </div>
+
+        <!-- Wetter-API Konfiguration -->
+        <div class="section">
+            <div class="section-title">🌤️ Wetter-API</div>
+            
+            <div class="form-group">
+                <label class="form-label">Wetter-Provider auswählen</label>
+                <select class="form-select" id="weatherProvider" onchange="toggleWeatherProvider()">
+                    <option value="open-meteo">Open-Meteo (Kostenlos, kein API Key) 🆓</option>
+                    <option value="openweathermap">OpenWeatherMap (API Key erforderlich)</option>
+                </select>
+                
+                <div class="info-box">
+                    <strong id="providerInfoTitle">Open-Meteo</strong>
+                    <span class="provider-badge badge-free">KOSTENLOS</span>
+                    <p id="providerInfo">Komplett kostenlos, kein API Key erforderlich. Sofort einsatzbereit!</p>
+                </div>
+            </div>
+
+            <div class="form-group hidden" id="apiKeyGroup">
+                <label class="form-label">OpenWeatherMap API Key</label>
+                <input type="text" class="form-input" id="weatherApiKey" placeholder="Dein API Key von openweathermap.org">
+                <div class="info-box">
+                    Erstelle einen kostenlosen API Key auf 
+                    <a href="https://openweathermap.org/api" target="_blank">openweathermap.org</a>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">Standort (Breitengrad)</label>
+                <input type="number" class="form-input" id="weatherLat" value="48.2082" step="0.0001" placeholder="48.2082">
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">Standort (Längengrad)</label>
+                <input type="number" class="form-input" id="weatherLon" value="16.3738" step="0.0001" placeholder="16.3738">
+                <div class="info-box">
+                    💡 Tipp: Google Maps → Rechtsklick auf deinen Standort → "Was ist hier?" → Koordinaten kopieren
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">Regen-Schwellwert (%)</label>
+                <input type="number" class="form-input" id="rainThreshold" value="70" min="0" max="100">
+                <div class="info-box">
+                    Bei Regenwahrscheinlichkeit über diesem Wert wird die Bewässerung automatisch pausiert.
+                </div>
+            </div>
+
+            <div class="form-group">
+                <div class="form-checkbox">
+                    <input type="checkbox" id="weatherEnabled" checked>
+                    <label for="weatherEnabled" class="form-label">Wetter-API aktivieren</label>
+                </div>
+            </div>
+        </div>
+
+<!-- Wintersperre -->
+        <div class="section">
+            <div class="section-title">❄️ Wintersperre</div>
+            <p style="color: #666; margin-bottom: 15px;">
+                Deaktiviert alle Bewässerungsfunktionen für die Winterpause. Verhindert Frostschäden.
+            </p>
+            <div class="form-group">
+                <div class="form-checkbox">
+                    <input type="checkbox" id="winterMode" onchange="toggleWinterMode(this.checked)">
+                    <label for="winterMode" class="form-label">Wintersperre aktivieren</label>
+                </div>
+                <div id="winterModeStatus" class="info-box" style="display: none; background: #dbeafe; border-left-color: #3b82f6;">
+                    <strong>❄️ Wintermodus aktiv</strong><br>
+                    Alle Bewässerungsfunktionen sind deaktiviert.
+                </div>
+            </div>
+        </div>
+
+        <!-- Zonen Konfiguration -->
+        <div class="section">
+            <div class="section-title">🌿 Bewässerungszonen</div>
+            
+            <div class="zone-list" id="zonesList">
+                <!-- Wird dynamisch gefüllt -->
+            </div>
+        </div>
+
+        <!-- Speichern Button -->
+        <div class="section">
+            <button class="btn btn-primary" onclick="saveConfiguration()">💾 Konfiguration speichern</button>
+            <div id="saveResult"></div>
+        </div>
+
+
+<!-- MQTT Konfiguration -->
+        <div class="section">
+            <div class="section-title">📡 MQTT Sensoren</div>
+            <p style="color: #666; margin-bottom: 15px;">
+                Konfiguriere MQTT-Broker und verbinde Feuchtigkeitssensoren für Echtzeit-Updates.
+            </p>
+            <button class="btn btn-secondary" onclick="window.location.href='/mqtt-config.html'" style="width: 100%;">
+                📡 MQTT Konfiguration öffnen
+            </button>
+            <div class="info-box" style="margin-top: 15px;">
+                <strong>Was ist MQTT?</strong><br>
+                MQTT ermöglicht die Integration von Feuchtigkeitssensoren (z.B. ESP32, Arduino) für automatische, sensorbasierte Bewässerung.
+            </div>
+        </div>
+
+
+        <!-- Backup Button -->
+        <div class="section">
+            <div class="section-title">💾 Backup</div>
+            <p style="color: #666; margin-bottom: 15px;">
+                Erstelle ein vollständiges Backup aller Daten, Konfigurationen und Zeitpläne.
+            </p>
+            <button class="btn btn-secondary" onclick="createBackup()" style="width: 100%;">
+                🗄️ Backup jetzt erstellen
+            </button>
+            <div id="backupResult"></div>
+        </div>
+
+<!-- System Logs -->
+        <div class="section">
+            <div class="section-title">📋 System Logs</div>
+            <p style="color: #666; margin-bottom: 15px;">
+                Zeige Live-System-Logs für Debugging und Monitoring.
+            </p>
+            <button class="btn btn-secondary" onclick="window.location.href='/logs.html'" style="width: 100%;">
+                📋 System Logs öffnen
+            </button>
+        </div>
+
+        <div style="text-align: center; color: white; margin-top: 20px;">
+            <a href="/" style="color: white;">← Zurück zur Hauptseite</a>
+        </div>
+    </div>
+
+    <script>
+        const apiBase = window.location.origin;
+        let zones = [];
+
+async function init() {
+    await loadConfig();
+    await loadZones();
+    await loadWinterMode();
+}
+
+        async function loadConfig() {
+            try {
+                const response = await fetch(apiBase + '/api/setup/config');
+                const config = await response.json();
+
+                if (config.loxone) {
+                    document.getElementById('loxoneHost').value = config.loxone.host || '';
+                    document.getElementById('loxoneUsername').value = config.loxone.username || '';
+                    document.getElementById('loxonePassword').value = config.loxone.password || '';
+                }
+
+                if (config.weather) {
+                    document.getElementById('weatherProvider').value = config.weather.provider || 'open-meteo';
+                    document.getElementById('weatherApiKey').value = config.weather.apiKey || '';
+                    document.getElementById('weatherLat').value = config.weather.lat || 48.2082;
+                    document.getElementById('weatherLon').value = config.weather.lon || 16.3738;
+                    document.getElementById('rainThreshold').value = config.weather.rainThreshold || 70;
+                    document.getElementById('weatherEnabled').checked = config.weather.enabled !== false;
+                    
+                    toggleWeatherProvider();
+                }
+            } catch (error) {
+                console.error('Fehler beim Laden der Config:', error);
+            }
+        }
+
+        async function loadZones() {
+            try {
+                const response = await fetch(apiBase + '/api/zones');
+                zones = await response.json();
+                renderZones();
+            } catch (error) {
+                console.error('Fehler beim Laden der Zonen:', error);
+            }
+        }
+
+
+function renderZones() {
+    const container = document.getElementById('zonesList');
+    container.innerHTML = zones.map(zone => `
+        <div class="zone-item">
+            <div style="display: flex; align-items: center; gap: 12px;">
+                <div style="
+                    width: 40px;
+                    height: 40px;
+                    background: linear-gradient(135deg, #667eea, #764ba2);
+                    border-radius: 10px;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    color: white;
+                    font-weight: 600;
+                    font-size: 14px;
+                ">${zone.id}</div>
+                <input type="text"
+                       class="form-input"
+                       id="zone-${zone.id}"
+                       value="${zone.name}"
+                       placeholder="Name der Zone"
+                       style="flex: 1;">
+
+<div style="display: flex; align-items: center; gap: 5px;">
+    <input type="number"
+           class="form-input"
+           id="zone-duration-${zone.id}"
+           value="${zone.default_duration || 10}"
+           min="1"
+           max="120"
+           style="width: 60px;"
+           title="Standard-Dauer"
+           onchange="updateZoneDuration(${zone.id}, this.value)">
+    <span style="color: #666; font-size: 13px;">Min</span>
+</div>
+
+ <button onclick="deleteZone(${zone.id})" style="
+                    background: #ef4444;
+                    color: white;
+                    border: none;
+                    padding: 8px 12px;
+                    border-radius: 8px;
+                    cursor: pointer;
+                    font-size: 18px;
+                ">🗑️</button>
+            </div>
+        </div>
+    `).join('') + `
+        <button onclick="addZone()" style="
+            width: 100%;
+            padding: 15px;
+            background: white;
+            border: 2px dashed #667eea;
+            border-radius: 12px;
+            color: #667eea;
+            font-weight: 600;
+            cursor: pointer;
+            margin-top: 10px;
+            transition: all 0.3s;
+        " onmouseover="this.style.background='#f0f4ff'" onmouseout="this.style.background='white'">
+            ➕ Zone hinzufügen
+        </button>
+    `;
+}
+
+async function updateZoneDuration(zoneId, duration) {
+    try {
+        const res = await fetch(`${apiBase}/api/zones/${zoneId}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ default_duration: parseInt(duration) })
+        });
+        if (res.ok) {
+            console.log('Dauer gespeichert');
+            await loadZones(); // Neu laden
+        }
+    } catch (error) {
+        alert('Fehler beim Speichern der Dauer');
+    }
+}
+
+async function loadWinterMode() {
+    try {
+        const response = await fetch(apiBase + '/api/winter-mode');
+        const data = await response.json();
+        
+        document.getElementById('winterMode').checked = data.enabled;
+        
+        if (data.enabled) {
+            document.getElementById('winterModeStatus').style.display = 'block';
+        }
+    } catch (error) {
+        console.error('Fehler beim Laden des Wintermodus:', error);
+    }
+}
+
+async function toggleWinterMode(enabled) {
+    try {
+        const response = await fetch(apiBase + '/api/winter-mode', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ enabled })
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            document.getElementById('winterModeStatus').style.display = enabled ? 'block' : 'none';
+            alert(result.message);
+        }
+    } catch (error) {
+        alert('Fehler beim Umschalten des Wintermodus');
+        console.error(error);
+    }
+}
+
+async function addZone() {
+    const newZoneId = zones.length > 0 ? Math.max(...zones.map(z => z.id)) + 1 : 1;
+    const newZone = {
+        id: newZoneId,
+        name: `Zone ${newZoneId}`,
+        position: 'unbekannt',
+        loxone_output: `IrrigationValve${newZoneId}`,
+        loxone_input: ''
+    };
+    
+    try {
+        const response = await fetch(apiBase + '/api/zones', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(newZone)
+        });
+        
+        if (response.ok) {
+            await loadZones();
+            showResult('saveResult', 'Zone hinzugefügt!', true);
+        }
+    } catch (error) {
+        showResult('saveResult', 'Fehler beim Hinzufügen', false);
+    }
+}
+
+async function deleteZone(zoneId) {
+    if (!confirm('Zone wirklich löschen?')) return;
+    
+    try {
+        const response = await fetch(apiBase + `/api/zones/${zoneId}`, {
+            method: 'DELETE'
+        });
+        
+        if (response.ok) {
+            await loadZones();
+            showResult('saveResult', 'Zone gelöscht', true);
+        }
+    } catch (error) {
+        showResult('saveResult', 'Fehler beim Löschen', false);
+    }
+}
+
+        function toggleWeatherProvider() {
+            const provider = document.getElementById('weatherProvider').value;
+            const apiKeyGroup = document.getElementById('apiKeyGroup');
+            const providerInfoTitle = document.getElementById('providerInfoTitle');
+            const providerInfo = document.getElementById('providerInfo');
+
+            if (provider === 'open-meteo') {
+                apiKeyGroup.classList.add('hidden');
+                providerInfoTitle.innerHTML = 'Open-Meteo <span class="provider-badge badge-free">KOSTENLOS</span>';
+                providerInfo.textContent = 'Komplett kostenlos, kein API Key erforderlich. Sofort einsatzbereit! Sehr genaue Vorhersagen für Europa.';
+            } else {
+                apiKeyGroup.classList.remove('hidden');
+                providerInfoTitle.innerHTML = 'OpenWeatherMap <span class="provider-badge badge-optional">API KEY</span>';
+                providerInfo.textContent = 'Kostenlos bis 1000 Calls/Tag. API Key erforderlich (ca. 10 Min Aktivierungszeit).';
+            }
+        }
+
+        async function testLoxoneConnection() {
+            const host = document.getElementById('loxoneHost').value;
+            const username = document.getElementById('loxoneUsername').value;
+            const password = document.getElementById('loxonePassword').value;
+
+            if (!host || !username || !password) {
+                showResult('loxoneTestResult', 'Bitte alle Felder ausfüllen', false);
+                return;
+            }
+
+            showResult('loxoneTestResult', 'Teste Verbindung...', true);
+
+            try {
+                const response = await fetch(apiBase + '/api/setup/test-connection', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ host, username, password })
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    showResult('loxoneTestResult', '✅ Verbindung erfolgreich!', true);
+                } else {
+                    showResult('loxoneTestResult', '❌ ' + result.error, false);
+                }
+            } catch (error) {
+                showResult('loxoneTestResult', '❌ Verbindungsfehler', false);
+            }
+        }
+
+        async function saveConfiguration() {
+            const provider = document.getElementById('weatherProvider').value;
+            
+            const config = {
+                loxone: {
+                    host: document.getElementById('loxoneHost').value,
+                    username: document.getElementById('loxoneUsername').value,
+                    password: document.getElementById('loxonePassword').value
+                },
+                weather: {
+                    provider: provider,
+                    apiKey: provider === 'openweathermap' ? document.getElementById('weatherApiKey').value : '',
+                    lat: parseFloat(document.getElementById('weatherLat').value),
+                    lon: parseFloat(document.getElementById('weatherLon').value),
+                    rainThreshold: parseInt(document.getElementById('rainThreshold').value),
+                    enabled: document.getElementById('weatherEnabled').checked
+                },
+                zones: zones.map(zone => ({
+                    id: zone.id,
+                    name: document.getElementById(`zone-${zone.id}`).value
+                }))
+            };
+
+            showResult('saveResult', 'Speichere...', true);
+
+            try {
+                const response = await fetch(apiBase + '/api/setup/save', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(config)
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    showResult('saveResult', '✅ Konfiguration gespeichert! Server wird neu geladen...', true);
+                    setTimeout(() => {
+                        window.location.href = '/';
+                    }, 2000);
+                } else {
+                    showResult('saveResult', '❌ Fehler: ' + result.error, false);
+                }
+            } catch (error) {
+                showResult('saveResult', '❌ Verbindungsfehler', false);
+            }
+        }
+
+        function showResult(elementId, message, isSuccess) {
+            const element = document.getElementById(elementId);
+            element.innerHTML = `<div class="${isSuccess ? 'success' : 'error'}">${message}</div>`;
+        }
+
+        async function createBackup() {
+            showResult('backupResult', '⏳ Erstelle Backup...', true);
+            
+            try {
+                const response = await fetch(apiBase + '/api/backup/create', {
+                    method: 'POST'
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    showResult('backupResult', '✅ Backup erfolgreich erstellt! Gespeichert unter: /backups/', true);
+                } else {
+                    showResult('backupResult', '❌ Fehler: ' + result.error, false);
+                }
+            } catch (error) {
+                showResult('backupResult', '❌ Verbindungsfehler: ' + error.message, false);
+            }
+        }
+
+        init();
+    </script>
+</body>
+</html>
