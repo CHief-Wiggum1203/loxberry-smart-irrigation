@@ -8,8 +8,8 @@
   "weather": {
     "provider": "open-meteo",
     "apiKey": "",
-    "lat": XXX,
-    "lon": XXX,
+"lat": 48.2082,
+"lon": 16.3738,
     "rainThreshold": 70,
     "enabled": true
   },

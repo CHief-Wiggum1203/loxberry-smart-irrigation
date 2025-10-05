@@ -310,6 +310,53 @@
             </div>
         </div>
 
+
+<!-- Tägliche Bewässerungsprüfung -->
+<div class="section">
+    <div class="section-title">⏰ Tägliche Bewässerungsprüfung</div>
+    <p style="color: #666; margin-bottom: 15px;">
+        Automatische Bewässerung basierend auf Wetter und Bodenfeuchtigkeit
+    </p>
+    
+    <div class="form-group">
+        <div class="form-checkbox">
+            <input type="checkbox" id="dailyCheckEnabled" onchange="toggleDailyCheckSettings()">
+            <label for="dailyCheckEnabled" class="form-label">Automatische Prüfung aktivieren</label>
+        </div>
+        
+        <div id="dailyCheckSettings" style="display: none; margin-top: 15px; padding: 15px; background: #f8f9fa; border-radius: 8px;">
+            <label style="display: block; margin-bottom: 8px; font-weight: 600; color: #333;">
+                Prüfzeit
+            </label>
+            <input type="time" 
+                   id="dailyCheckTime" 
+                   class="form-input" 
+                   value="04:00"
+                   style="width: 150px; margin-bottom: 10px;">
+            <div style="font-size: 12px; color: #666; margin-bottom: 15px;">
+                ℹ️ Empfohlen: Früh morgens (04:00 - 06:00 Uhr)
+            </div>
+            
+            <div class="info-box" style="background: #dbeafe; border-left-color: #667eea;">
+                <strong>So funktioniert's:</strong>
+                <ul style="margin: 8px 0 0 20px; font-size: 13px; line-height: 1.6;">
+                    <li>Wintersperre wird geprüft</li>
+                    <li>Regenwahrscheinlichkeit > 70% → keine Bewässerung</li>
+                    <li>Bodenfeuchtigkeit über Schwellwert → Zone übersprungen</li>
+                    <li>Alle Zonen nacheinander mit 2 Min Pause</li>
+                </ul>
+            </div>
+            
+            <button onclick="saveDailyCheck()" class="btn-primary" style="margin-top: 15px;">
+                💾 Speichern
+            </button>
+            
+            <div id="dailyCheckResult" style="margin-top: 10px;"></div>
+        </div>
+    </div>
+</div>
+
+
         <!-- Zonen Konfiguration -->
         <div class="section">
             <div class="section-title">🌿 Bewässerungszonen</div>
@@ -698,6 +745,57 @@ async function deleteZone(zoneId) {
         }
 
         init();
+
+// === Tägliche Bewässerungsprüfung ===
+async function loadDailyCheck() {
+    try {
+        const response = await fetch(apiBase + '/api/settings/daily-check');
+        const data = await response.json();
+        
+        document.getElementById('dailyCheckEnabled').checked = data.enabled;
+        document.getElementById('dailyCheckTime').value = data.time || '04:00';
+        
+        toggleDailyCheckSettings();
+    } catch (error) {
+        console.error('Fehler beim Laden:', error);
+    }
+}
+
+function toggleDailyCheckSettings() {
+    const enabled = document.getElementById('dailyCheckEnabled').checked;
+    const settings = document.getElementById('dailyCheckSettings');
+    settings.style.display = enabled ? 'block' : 'none';
+}
+
+async function saveDailyCheck() {
+    const enabled = document.getElementById('dailyCheckEnabled').checked;
+    const time = document.getElementById('dailyCheckTime').value;
+    
+    showResult('dailyCheckResult', 'Speichere...', true);
+    
+    try {
+        const response = await fetch(apiBase + '/api/settings/daily-check', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ enabled, time })
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            showResult('dailyCheckResult', '✅ Gespeichert! Nächste Prüfung um ' + time + ' Uhr', true);
+        } else {
+            showResult('dailyCheckResult', '❌ Fehler: ' + result.error, false);
+        }
+    } catch (error) {
+        showResult('dailyCheckResult', '❌ Verbindungsfehler', false);
+    }
+}
+
+document.getElementById('dailyCheckEnabled')?.addEventListener('change', toggleDailyCheckSettings);
+
+loadDailyCheck();
+
     </script>
 </body>
 </html>

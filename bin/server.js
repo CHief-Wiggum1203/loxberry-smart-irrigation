@@ -36,6 +36,7 @@ let db;
 let config = {};
 const activeTimers = new Map();
 const activeCrons = new Map();
+let dailyCheckCron = null;
 let weatherCache = null;
 let weatherCacheTime = null;
 
@@ -218,6 +219,8 @@ function handleMqttMessage(topic, message) {
 function initDatabase() {
     console.log('📦 Initialisiere Datenbank...');
 
+
+
     db = new sqlite3.Database(dbPath, (err) => {
         if (err) {
             console.error('❌ Fehler beim Öffnen der Datenbank:', err);
@@ -225,6 +228,7 @@ function initDatabase() {
         }
         console.log('✅ Datenbank verbunden');
     });
+
 
     db.serialize(() => {
         db.run(`CREATE TABLE IF NOT EXISTS users (
@@ -234,6 +238,8 @@ function initDatabase() {
             role TEXT DEFAULT 'user',
             created_at DATETIME DEFAULT CURRENT_TIMESTAMP
         )`);
+
+scheduleDailyCheck();
 
         db.run(`CREATE TABLE IF NOT EXISTS zones (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -830,6 +836,95 @@ cron.schedule('*/15 * * * *', async () => {
 });
 
 // Automatische Bewässerung prüfen alle 6 Stunden
+
+// Tägliche Bewässerungsprüfung
+async function dailyIrrigationCheck() {
+    console.log('🌅 Tägliche Bewässerungsprüfung gestartet');
+    
+    try {
+        const winterMode = await new Promise((resolve, reject) => {
+            db.get('SELECT enabled FROM winter_mode WHERE id = 1', (err, row) => {
+                if (err) reject(err);
+                else resolve(row?.enabled || 0);
+            });
+        });
+        
+        if (winterMode) {
+            console.log('❄️ Wintersperre aktiv - keine Bewässerung');
+            return;
+        }
+        
+        const weatherData = await fetchWeather();
+        if (weatherData && weatherData.rainProbability > 70) {
+            console.log(`🌧️ Hohe Regenwahrscheinlichkeit (${weatherData.rainProbability}%) - keine Bewässerung`);
+            return;
+        }
+        
+        db.all('SELECT * FROM zones WHERE enabled = 1 ORDER BY priority DESC', async (err, zones) => {
+            if (err) {
+                console.error('Fehler beim Laden der Zonen:', err);
+                return;
+            }
+            
+            for (const zone of zones) {
+                if (zone.moisture !== null && zone.moisture > zone.moisture_threshold) {
+                    console.log(`💧 Zone ${zone.name}: Feuchtigkeit OK (${zone.moisture}%)`);
+                    continue;
+                }
+                
+                const duration = zone.default_duration || 10;
+                console.log(`🚿 Starte Zone ${zone.name} für ${duration} Min`);
+                
+                try {
+                    await controlZone(zone.id, true);
+                    setTimeout(async () => {
+                        await controlZone(zone.id, false);
+                        activeTimers.delete(zone.id);
+                    }, duration * 60 * 1000);
+                } catch (error) {
+                    console.error(`Fehler bei Zone ${zone.name}:`, error);
+                }
+                
+                await new Promise(resolve => setTimeout(resolve, 120000));
+            }
+        });
+    } catch (error) {
+        console.error('Fehler bei täglicher Bewässerungsprüfung:', error);
+    }
+}
+
+function scheduleDailyCheck() {
+    db.get('SELECT value FROM settings WHERE key = "daily_check_enabled"', (err, enabledRow) => {
+        if (err || !enabledRow || enabledRow.value !== '1') {
+            console.log('Tägliche Bewässerungsprüfung deaktiviert');
+            if (dailyCheckCron) {
+                dailyCheckCron.stop();
+                dailyCheckCron = null;
+            }
+            return;
+        }
+        
+        db.get('SELECT value FROM settings WHERE key = "daily_check_time"', (err, timeRow) => {
+            if (err) {
+                console.error('Fehler beim Laden der Check-Zeit:', err);
+                return;
+            }
+            
+            const checkTime = timeRow ? timeRow.value : '04:00';
+            const [hour, minute] = checkTime.split(':');
+            
+            if (dailyCheckCron) {
+                dailyCheckCron.stop();
+            }
+            
+            dailyCheckCron = cron.schedule(`${minute} ${hour} * * *`, dailyIrrigationCheck);
+            console.log(`⏰ Tägliche Bewässerungsprüfung geplant für ${checkTime} Uhr`);
+        });
+    });
+}
+
+
+
 cron.schedule('0 */6 * * *', async () => {
     console.log('🤖 Prüfe automatische Bewässerung...');
     
@@ -1075,6 +1170,43 @@ app.post('/api/winter-mode', (req, res) => {
 
 app.get('/api/winter-mode', (req, res) => {
     res.json(config.winterMode || { enabled: false, activatedAt: null });
+});
+
+// Settings - Daily Check abrufen
+app.get('/api/settings/daily-check', (req, res) => {
+    db.all('SELECT * FROM settings WHERE key LIKE "daily_check_%"', (err, rows) => {
+        if (err) {
+            return res.status(500).json({ error: err.message });
+        }
+        
+        const settings = {};
+        rows.forEach(row => {
+            settings[row.key.replace('daily_check_', '')] = row.value;
+        });
+        
+        res.json({
+            enabled: settings.enabled === '1',
+            time: settings.time || '04:00'
+        });
+    });
+});
+
+// Settings - Daily Check speichern
+app.post('/api/settings/daily-check', (req, res) => {
+    const { enabled, time } = req.body;
+    
+    const stmt = db.prepare('INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)');
+    stmt.run('daily_check_enabled', enabled ? '1' : '0');
+    stmt.run('daily_check_time', time || '04:00');
+    stmt.finalize((err) => {
+        if (err) {
+            return res.status(500).json({ error: err.message });
+        }
+        
+        scheduleDailyCheck();
+        
+        res.json({ success: true, message: 'Einstellungen gespeichert' });
+    });
 });
 
 app.put('/api/zones/:id', (req, res) => {
