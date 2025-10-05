@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Smart Irrigation Setup</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, system-ui, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            padding: 40px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.2);
+        }
+        h1 {
+            color: #333;
+            margin-bottom: 10px;
+        }
+        .subtitle {
+            color: #666;
+            margin-bottom: 30px;
+        }
+        .step {
+            margin: 30px 0;
+            padding: 20px;
+            border: 2px solid #eee;
+            border-radius: 10px;
+        }
+        .step.active {
+            border-color: #667eea;
+            background: #f8f9ff;
+        }
+        .step h2 {
+            color: #667eea;
+            margin-bottom: 20px;
+            font-size: 20px;
+        }
+        input, select {
+            width: 100%;
+            padding: 12px;
+            margin: 8px 0;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            font-size: 16px;
+        }
+        button {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            border: none;
+            padding: 12px 30px;
+            border-radius: 8px;
+            font-size: 16px;
+            cursor: pointer;
+            margin: 10px 10px 10px 0;
+        }
+        button:hover { opacity: 0.9; }
+        .zone-item {
+            display: flex;
+            gap: 10px;
+            margin: 10px 0;
+            padding: 10px;
+            background: #f5f5f5;
+            border-radius: 8px;
+        }
+        .zone-item input { flex: 1; }
+        .success { color: green; font-weight: bold; }
+        .error { color: red; font-weight: bold; }
+        .info { 
+            background: #e3f2fd; 
+            padding: 15px; 
+            border-radius: 8px; 
+            margin: 20px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🌱 Smart Irrigation Setup</h1>
+        <div class="subtitle">Willkommen zur Einrichtung deiner intelligenten Bewässerung!</div>
+        
+        <div class="step active">
+            <h2>Schritt 1: Loxone Miniserver Verbindung</h2>
+            <div class="info">
+                ℹ️ Erstelle in Loxone Config einen Benutzer "irrigation_app" mit Web-Rechten
+            </div>
+            <input type="text" id="loxHost" placeholder="Miniserver IP (z.B. 192.168.1.106)" value="192.168.1.106">
+            <input type="text" id="loxUser" placeholder="Benutzername (z.B. irrigation_app)">
+            <input type="password" id="loxPass" placeholder="Passwort">
+            <button onclick="testLoxone()">Verbindung testen</button>
+            <div id="loxStatus"></div>
+        </div>
+
+        <div class="step">
+            <h2>Schritt 2: Bewässerungszonen (12 Ventile)</h2>
+            <div class="info">
+                ℹ️ Trage die Namen deiner virtuellen Ausgänge aus Loxone ein
+            </div>
+            <div id="zonesContainer"></div>
+            <button onclick="addZone()">+ Zone hinzufügen</button>
+        </div>
+
+        <div class="step">
+            <h2>Schritt 3: Wetter & Standort (Optional)</h2>
+            <div class="info">
+                ℹ️ Kostenloser API Key von <a href="https://openweathermap.org/api" target="_blank">OpenWeatherMap</a>
+            </div>
+            <input type="text" id="weatherApi" placeholder="OpenWeatherMap API Key (optional)">
+            <input type="text" id="weatherLat" placeholder="Breitengrad (z.B. 48.2082)">
+            <input type="text" id="weatherLon" placeholder="Längengrad (z.B. 16.3738)">
+            <button onclick="detectLocation()">📍 Standort ermitteln</button>
+        </div>
+
+        <div class="step">
+            <h2>Schritt 4: Fertigstellen</h2>
+            <button onclick="saveSetup()" style="background: green; font-size: 20px; padding: 15px 40px;">
+                ✅ Setup speichern & starten
+            </button>
+            <div id="finalStatus"></div>
+        </div>
+    </div>
+
+    <script>
+        let zones = [];
+        
+        // Initial: 12 Zonen erstellen
+        function initZones() {
+            for(let i = 1; i <= 12; i++) {
+                zones.push({
+                    id: i,
+                    name: 'Zone ' + i,
+                    valve: 'IrrigationValve' + i,
+                    sensor: 'IrrigationMoisture' + i
+                });
+            }
+            renderZones();
+        }
+
+        function renderZones() {
+            const container = document.getElementById('zonesContainer');
+            container.innerHTML = zones.map((z, i) => 
+                '<div class="zone-item">' +
+                    '<span style="width: 30px;">' + z.id + '.</span>' +
+                    '<input type="text" placeholder="Name" value="' + z.name + '" ' +
+                           'onchange="zones[' + i + '].name = this.value">' +
+                    '<input type="text" placeholder="Ventil in Loxone" value="' + z.valve + '" ' +
+                           'onchange="zones[' + i + '].valve = this.value">' +
+                    '<input type="text" placeholder="Sensor (optional)" value="' + (z.sensor || '') + '" ' +
+                           'onchange="zones[' + i + '].sensor = this.value">' +
+                '</div>'
+            ).join('');
+        }
+
+        function addZone() {
+            const id = zones.length + 1;
+            zones.push({
+                id: id,
+                name: 'Zone ' + id,
+                valve: 'IrrigationValve' + id,
+                sensor: 'IrrigationMoisture' + id
+            });
+            renderZones();
+        }
+
+        async function testLoxone() {
+            const status = document.getElementById('loxStatus');
+            status.innerHTML = '⏳ Teste Verbindung...';
+            
+            try {
+                const response = await fetch('/api/setup/test-loxone', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        host: document.getElementById('loxHost').value,
+                        username: document.getElementById('loxUser').value,
+                        password: document.getElementById('loxPass').value
+                    })
+                });
+                const data = await response.json();
+                
+                if(data.success) {
+                    status.innerHTML = '<span class="success">✅ ' + data.message + '</span>';
+                    document.querySelectorAll('.step')[1].classList.add('active');
+                } else {
+                    status.innerHTML = '<span class="error">❌ ' + data.message + '</span>';
+                }
+            } catch(error) {
+                status.innerHTML = '<span class="error">❌ Fehler: ' + error.message + '</span>';
+            }
+        }
+
+        function detectLocation() {
+            if(navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(position => {
+                    document.getElementById('weatherLat').value = position.coords.latitude.toFixed(4);
+                    document.getElementById('weatherLon').value = position.coords.longitude.toFixed(4);
+                    alert('Standort ermittelt!');
+                });
+            }
+        }
+
+        async function saveSetup() {
+            const config = {
+                loxone: {
+                    host: document.getElementById('loxHost').value,
+                    username: document.getElementById('loxUser').value,
+                    password: document.getElementById('loxPass').value
+                },
+                weather: {
+                    apiKey: document.getElementById('weatherApi').value || '',
+                    lat: parseFloat(document.getElementById('weatherLat').value) || 48.2082,
+                    lon: parseFloat(document.getElementById('weatherLon').value) || 16.3738
+                },
+                zones: zones.filter(z => z.valve)
+            };
+
+            const response = await fetch('/api/setup/save', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(config)
+            });
+            
+            const data = await response.json();
+            if(data.success) {
+                document.getElementById('finalStatus').innerHTML = 
+                    '<span class="success">✅ Setup erfolgreich! Weiterleitung in 3 Sekunden...</span>';
+                setTimeout(() => window.location.href = '/', 3000);
+            }
+        }
+
+        // Start
+        initZones();
+    </script>
+</body>
+</html>

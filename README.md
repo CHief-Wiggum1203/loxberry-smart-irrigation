@@ -420,6 +420,45 @@ smartirrigation/
 - 2 Minuten Pause zwischen Zonen
 
 
+### v1.5.0 (05.10.2025)
+- ✅ History-Tracking mit vollständigem Logging aller Aktionen
+- ✅ MQTT Detail-Topics mit Kontext-Informationen
+- ✅ Tägliche Prüfung: Modus-Auswahl (Einzelzonen/Sequenz)
+- ✅ Zonenspezifische Einstellungen und Prioritäten
+- ✅ Automatische Bewässerung basierend auf Bodenfeuchtigkeit
+- ✅ Verbesserte MQTT-Konfigurationsseite
+- 🔧 Bugfixes und Performance-Verbesserungen
+
+
+-----
+
+## Version 1.5.0 - Neue Features (05.10.2025)
+
+### History-Tracking System
+- Vollständiges Logging aller Bewässerungsaktionen in SQLite-Datenbank
+- Trigger-Typen: `manual`, `mqtt`, `daily_check`, `sequence`, `auto_water`, `schedule`
+- Quellen-Tracking: Unterscheidung zwischen web_ui, mqtt_command, automatic, etc.
+- API-Endpoint: `GET /api/history?limit=100&zone_id=1`
+
+### Erweiterte MQTT-Integration
+- Status-Topic: `irrigation/zone/{id}/status` (on/off mit retained flag)
+- Detail-Topic: `irrigation/zone/{id}/detail` (JSON mit Trigger, Dauer, Quelle, Zeitstempel)
+- Daily-Check-Results via MQTT für externe Monitoring-Systeme
+
+### Tägliche Bewässerungsprüfung - Erweitert
+- **Modus-Auswahl**: Einzelzonen (feuchtigkeitsbasiert) oder Sequenz-Ausführung
+- Wetterbasierte Steuerung mit konfigurierbarem Regenschwellwert
+- Wintersperre-Integration
+- Konfigurierbar über Setup-UI (Zeit, Modus, Sequenz)
+
+### Zonenspezifische Einstellungen
+- Standard-Bewässerungsdauer pro Zone
+- Prioritäts-System für Wassermangel-Situationen
+- Feuchtigkeitsschwellwerte (Minimum & Optimal)
+- Automatische Bewässerung basierend auf Sensordaten
+
+-----
+
 ## Lizenz
 
 MIT License

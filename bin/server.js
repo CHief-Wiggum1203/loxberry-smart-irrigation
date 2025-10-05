@@ -147,10 +147,18 @@ function handleMqttMessage(topic, message) {
             
             console.log(`📡 MQTT Command: Zone ${zoneId} → ${command}`);
             
-            if (command === 'start') {
-                controlZone(zoneId, true).then(() => {
+
+if (command === 'start') {
+                controlZone(zoneId, true, {
+                    trigger_type: 'mqtt',
+                    trigger_source: 'mqtt_command',
+                    duration: 10
+                }).then(() => {
                     const timer = setTimeout(async () => {
-                        await controlZone(zoneId, false);
+                        await controlZone(zoneId, false, {
+                            trigger_type: 'mqtt',
+                            trigger_source: 'mqtt_command'
+                        });
                         activeTimers.delete(zoneId);
                     }, 10 * 60 * 1000);
                     activeTimers.set(zoneId, timer);
@@ -160,8 +168,12 @@ function handleMqttMessage(topic, message) {
                     clearTimeout(activeTimers.get(zoneId));
                     activeTimers.delete(zoneId);
                 }
-                controlZone(zoneId, false);
+                controlZone(zoneId, false, {
+                    trigger_type: 'mqtt',
+                    trigger_source: 'mqtt_command'
+                });
             }
+
             return;
         }
         
@@ -649,7 +661,7 @@ async function shouldWaterBasedOnMoisture(zone) {
 // Original Zonen-Control (UNVERÄNDERT)
 // ============================================
 
-async function controlZone(zoneId, state) {
+async function controlZone(zoneId, state, context = {}) {
     return new Promise((resolve, reject) => {
         db.get('SELECT * FROM zones WHERE id = ?', [zoneId], async (err, zone) => {
             if (err || !zone) {
@@ -682,26 +694,42 @@ async function controlZone(zoneId, state) {
                             },
                             timeout: 5000
                         });
-               
-// MQTT Status publizieren
+
+                        // MQTT Status publizieren mit Kontext
                         if (mqttClient && mqttClient.connected) {
-                            const statusTopic = `${mqttConfig.baseTopic}/zone/${zoneId}/status`;
+                            const baseTopic = mqttConfig.baseTopic || 'irrigation';
+                            const statusTopic = `${baseTopic}/zone/${zoneId}/status`;
+                            
                             mqttClient.publish(statusTopic, state ? 'on' : 'off', { retain: true });
-                            console.log(`📡 MQTT: ${statusTopic} = ${state ? 'on' : 'off'}`);
+                            
+                            if (state) {
+                                // Erweiterte Info beim Einschalten
+                                const detailTopic = `${baseTopic}/zone/${zoneId}/detail`;
+                                const detail = {
+                                    zone_id: zoneId,
+                                    zone_name: zone.name,
+                                    status: 'on',
+                                    trigger_type: context.trigger_type || 'manual',
+                                    trigger_source: context.trigger_source || 'unknown',
+                                    duration: context.duration || 10,
+                                    timestamp: new Date().toISOString()
+                                };
+                                mqttClient.publish(detailTopic, JSON.stringify(detail), { retain: true });
+                                console.log(`📡 MQTT: ${statusTopic} = on (${context.trigger_type || 'manual'})`);
+                            } else {
+                                console.log(`📡 MQTT: ${statusTopic} = off`);
+                            }
                         }
 
-
-         console.log(`✅ Loxone: ${zone.name} -> ${state ? 'AN' : 'AUS'}`);
+                        console.log(`✅ Loxone: ${zone.name} -> ${state ? 'AN' : 'AUS'}`);
                     } catch (loxoneError) {
                         console.error('⚠️ Loxone-Verbindungsfehler:', loxoneError.message);
                     }
                 }
 
-
-const sql = state
-    ? 'UPDATE zones SET is_active = 1 WHERE id = ?'
-    : "UPDATE zones SET is_active = 0, last_watered = datetime('now','localtime') WHERE id = ?";
-
+                const sql = state
+                    ? 'UPDATE zones SET is_active = 1 WHERE id = ?'
+                    : "UPDATE zones SET is_active = 0, last_watered = datetime('now','localtime') WHERE id = ?";
 
                 db.run(sql, [zoneId], (err) => {
                     if (err) {
@@ -709,14 +737,48 @@ const sql = state
                         return;
                     }
 
-                    console.log(`${state ? '▶️' : '⏸️'} Zone ${zone.name} ${state ? 'gestartet' : 'gestoppt'}`);
-                    
+                    // History-Eintrag erstellen
+                    if (state) {
+                        // Start-Eintrag
+                        db.run(
+                            `INSERT INTO history (zone_id, zone_name, action, trigger_type, trigger_source, duration, start_time) 
+                             VALUES (?, ?, 'start', ?, ?, ?, datetime('now','localtime'))`,
+                            [
+                                zoneId,
+                                zone.name,
+                                context.trigger_type || 'manual',
+                                context.trigger_source || 'unknown',
+                                context.duration || 10
+                            ],
+                            (err) => {
+                                if (err) console.error('History-Fehler:', err);
+                            }
+                        );
+                    } else {
+                        // Stop-Eintrag
+                        db.run(
+                            `INSERT INTO history (zone_id, zone_name, action, trigger_type, trigger_source, end_time) 
+                             VALUES (?, ?, 'stop', ?, ?, datetime('now','localtime'))`,
+                            [
+                                zoneId,
+                                zone.name,
+                                context.trigger_type || 'manual',
+                                context.trigger_source || 'unknown'
+                            ],
+                            (err) => {
+                                if (err) console.error('History-Fehler:', err);
+                            }
+                        );
+                    }
+
+                    console.log(`${state ? '▶️' : '⏸️'} Zone ${zone.name} ${state ? 'gestartet' : 'gestoppt'} (${context.trigger_type || 'manual'})`);
+
                     // Broadcast Update
                     broadcastToClients({
                         type: 'zone_update',
-                        data: { zone_id: zoneId, is_active: state }
+                        data: { zone_id: zoneId, is_active: state, context }
                     });
-                    
+
                     resolve({ success: true, zone: zone.name, state });
                 });
 
@@ -727,7 +789,8 @@ const sql = state
     });
 }
 
-async function runSequence(zones, sequenceId = null) {
+
+async function runSequence(zones, sequenceId = null, context = {}) {
     console.log('🔄 Starte Sequenz mit Zonen:', zones);
 
     for (const zoneConfig of zones) {
@@ -735,12 +798,20 @@ async function runSequence(zones, sequenceId = null) {
         const duration = zoneConfig.duration;
 
         try {
-            await controlZone(zoneId, true);
+            await controlZone(zoneId, true, {
+                trigger_type: context.trigger_type || 'sequence',
+                trigger_source: context.trigger_source || `sequence_${sequenceId}`,
+                duration: duration
+            });
+            
             console.log(`⏱️ Zone ${zoneId} läuft für ${duration} Minuten`);
 
             await new Promise((resolve) => {
                 setTimeout(async () => {
-                    await controlZone(zoneId, false);
+                    await controlZone(zoneId, false, {
+                        trigger_type: context.trigger_type || 'sequence',
+                        trigger_source: context.trigger_source || `sequence_${sequenceId}`
+                    });
                     console.log(`✅ Zone ${zoneId} beendet`);
                     resolve();
                 }, duration * 60 * 1000);
@@ -755,6 +826,7 @@ async function runSequence(zones, sequenceId = null) {
 
     console.log('✅ Sequenz abgeschlossen');
 }
+
 
 // ============================================
 // Original Cron/Schedule (UNVERÄNDERT)
@@ -835,63 +907,218 @@ cron.schedule('*/15 * * * *', async () => {
     timezone: 'Europe/Vienna'
 });
 
-// Automatische Bewässerung prüfen alle 6 Stunden
+
+
 
 // Tägliche Bewässerungsprüfung
 async function dailyIrrigationCheck() {
     console.log('🌅 Tägliche Bewässerungsprüfung gestartet');
-    
+
+    const result = {
+        timestamp: new Date().toISOString(),
+        winterMode: false,
+        rainProbability: 0,
+        mode: 'zones',
+        zonesWatered: [],
+        zonesSkipped: [],
+        sequenceRun: null,
+        reason: ''
+    };
+
     try {
+        // Wintersperre prüfen
         const winterMode = await new Promise((resolve, reject) => {
             db.get('SELECT enabled FROM winter_mode WHERE id = 1', (err, row) => {
                 if (err) reject(err);
                 else resolve(row?.enabled || 0);
             });
         });
-        
+
+        result.winterMode = winterMode === 1;
+
         if (winterMode) {
+            result.reason = 'Wintersperre aktiv';
             console.log('❄️ Wintersperre aktiv - keine Bewässerung');
+            publishDailyCheckResult(result);
             return;
         }
-        
-        const weatherData = await fetchWeather();
-        if (weatherData && weatherData.rainProbability > 70) {
-            console.log(`🌧️ Hohe Regenwahrscheinlichkeit (${weatherData.rainProbability}%) - keine Bewässerung`);
+
+        // Wetter prüfen
+        const weatherData = await fetchWeatherData();
+        result.rainProbability = weatherData?.forecast?.rainProbability || 0;
+
+        if (weatherData && weatherData.forecast.rainProbability > 70) {
+            result.reason = `Hohe Regenwahrscheinlichkeit (${weatherData.forecast.rainProbability}%)`;
+            console.log(`🌧️ ${result.reason} - keine Bewässerung`);
+            publishDailyCheckResult(result);
             return;
         }
-        
-        db.all('SELECT * FROM zones WHERE enabled = 1 ORDER BY priority DESC', async (err, zones) => {
-            if (err) {
-                console.error('Fehler beim Laden der Zonen:', err);
+
+        // Modus laden
+        const mode = await new Promise((resolve, reject) => {
+            db.get('SELECT value FROM settings WHERE key = "daily_check_mode"', (err, row) => {
+                if (err) reject(err);
+                else resolve(row?.value || 'zones');
+            });
+        });
+
+        result.mode = mode;
+
+        if (mode === 'sequence') {
+            // SEQUENZ-MODUS
+            const sequenceId = await new Promise((resolve, reject) => {
+                db.get('SELECT value FROM settings WHERE key = "daily_check_sequence_id"', (err, row) => {
+                    if (err) reject(err);
+                    else resolve(row?.value ? parseInt(row.value) : null);
+                });
+            });
+
+            if (!sequenceId) {
+                result.reason = 'Keine Sequenz ausgewählt';
+                console.log('⚠️ Sequenz-Modus aktiv, aber keine Sequenz konfiguriert');
+                publishDailyCheckResult(result);
                 return;
             }
-            
-            for (const zone of zones) {
-                if (zone.moisture !== null && zone.moisture > zone.moisture_threshold) {
-                    console.log(`💧 Zone ${zone.name}: Feuchtigkeit OK (${zone.moisture}%)`);
-                    continue;
-                }
-                
-                const duration = zone.default_duration || 10;
-                console.log(`🚿 Starte Zone ${zone.name} für ${duration} Min`);
-                
-                try {
-                    await controlZone(zone.id, true);
-                    setTimeout(async () => {
-                        await controlZone(zone.id, false);
-                        activeTimers.delete(zone.id);
-                    }, duration * 60 * 1000);
-                } catch (error) {
-                    console.error(`Fehler bei Zone ${zone.name}:`, error);
-                }
-                
-                await new Promise(resolve => setTimeout(resolve, 120000));
+
+            const sequence = await new Promise((resolve, reject) => {
+                db.get('SELECT * FROM sequences WHERE id = ?', [sequenceId], (err, row) => {
+                    if (err) reject(err);
+                    else resolve(row);
+                });
+            });
+
+            if (!sequence) {
+                result.reason = 'Sequenz nicht gefunden';
+                console.log(`⚠️ Sequenz #${sequenceId} nicht gefunden`);
+                publishDailyCheckResult(result);
+                return;
             }
-        });
+
+            console.log(`🔄 Starte Sequenz "${sequence.name}"`);
+            result.sequenceRun = {
+                id: sequence.id,
+                name: sequence.name
+            };
+
+            const zones = JSON.parse(sequence.zones);
+            
+            for (const zoneConfig of zones) {
+                const zoneId = zoneConfig.zone_id;
+                const duration = zoneConfig.duration;
+
+                try {
+                    await controlZone(zoneId, true);
+                    console.log(`⏱️ Zone ${zoneId} läuft für ${duration} Minuten`);
+
+                    const zone = await new Promise((resolve) => {
+                        db.get('SELECT name FROM zones WHERE id = ?', [zoneId], (err, row) => {
+                            resolve(row);
+                        });
+                    });
+
+                    result.zonesWatered.push({
+                        id: zoneId,
+                        name: zone?.name || `Zone ${zoneId}`,
+                        duration: duration
+                    });
+
+                    await new Promise((resolve) => {
+                        setTimeout(async () => {
+                            await controlZone(zoneId, false);
+                            console.log(`✅ Zone ${zoneId} beendet`);
+                            resolve();
+                        }, duration * 60 * 1000);
+                    });
+
+                    await new Promise(resolve => setTimeout(resolve, 120000)); // 2 Min Pause
+
+                } catch (error) {
+                    console.error(`❌ Fehler bei Zone ${zoneId}:`, error.message);
+                }
+            }
+
+            result.reason = `Sequenz "${sequence.name}" abgeschlossen: ${result.zonesWatered.length} Zonen`;
+            publishDailyCheckResult(result);
+
+        } else {
+            // EINZELZONEN-MODUS
+            db.all('SELECT * FROM zones WHERE enabled = 1 ORDER BY priority DESC', async (err, zones) => {
+                if (err) {
+                    console.error('Fehler beim Laden der Zonen:', err);
+                    result.reason = 'Fehler beim Laden der Zonen';
+                    publishDailyCheckResult(result);
+                    return;
+                }
+
+                for (const zone of zones) {
+                    if (zone.moisture !== null && zone.moisture > zone.moisture_threshold) {
+                        console.log(`💧 Zone ${zone.name}: Feuchtigkeit OK (${zone.moisture}%)`);
+                        result.zonesSkipped.push({
+                            id: zone.id,
+                            name: zone.name,
+                            reason: `Feuchtigkeit ${zone.moisture}% über Schwellwert ${zone.moisture_threshold}%`
+                        });
+                        continue;
+                    }
+
+                    const duration = zone.default_duration || 10;
+                    console.log(`🚿 Starte Zone ${zone.name} für ${duration} Min`);
+
+                    try {
+await controlZone(zone.id, true, {
+    trigger_type: 'daily_check',
+    trigger_source: 'automatic_zones',
+    duration: duration
+});
+setTimeout(async () => {
+    await controlZone(zone.id, false, {
+        trigger_type: 'daily_check',
+        trigger_source: 'automatic_zones'
+    });
+    activeTimers.delete(zone.id);
+}, duration * 60 * 1000);
+                        result.zonesWatered.push({
+                            id: zone.id,
+                            name: zone.name,
+                            duration: duration
+                        });
+                    } catch (error) {
+                        console.error(`Fehler bei Zone ${zone.name}:`, error);
+                    }
+
+                    await new Promise(resolve => setTimeout(resolve, 120000)); // 2 Min Pause
+                }
+
+                result.reason = `${result.zonesWatered.length} Zonen bewässert, ${result.zonesSkipped.length} übersprungen`;
+                publishDailyCheckResult(result);
+            });
+        }
     } catch (error) {
         console.error('Fehler bei täglicher Bewässerungsprüfung:', error);
+        result.reason = 'Fehler: ' + error.message;
+        publishDailyCheckResult(result);
     }
 }
+
+
+
+
+function publishDailyCheckResult(result) {
+    console.log(`📋 Prüfergebnis: ${result.reason}`);
+    
+    if (mqttClient && mqttClient.connected) {
+        const baseTopic = mqttConfig.baseTopic || 'irrigation';
+        
+        mqttClient.publish(`${baseTopic}/daily-check/result`, JSON.stringify(result), { retain: true });
+        mqttClient.publish(`${baseTopic}/daily-check/timestamp`, result.timestamp);
+        mqttClient.publish(`${baseTopic}/daily-check/zones-watered`, result.zonesWatered.length.toString());
+        mqttClient.publish(`${baseTopic}/daily-check/zones-skipped`, result.zonesSkipped.length.toString());
+        mqttClient.publish(`${baseTopic}/daily-check/reason`, result.reason);
+        
+        console.log('📤 Prüfergebnis via MQTT gesendet');
+    }
+}
+
 
 function scheduleDailyCheck() {
     db.get('SELECT value FROM settings WHERE key = "daily_check_enabled"', (err, enabledRow) => {
@@ -939,10 +1166,16 @@ cron.schedule('0 */6 * * *', async () => {
             if (decision.shouldWater) {
                 console.log(`💧 Starte Zone ${zone.name}: ${decision.reason}`);
                 
-                await controlZone(zone.id, true);
-                
+await controlZone(zone.id, true, {
+    trigger_type: 'auto_water',
+    trigger_source: 'moisture_based',
+    duration: decision.duration
+});                
                 const timer = setTimeout(async () => {
-                    await controlZone(zone.id, false);
+                    await controlZone(zone.id, false, {
+    trigger_type: 'auto_water',
+    trigger_source: 'moisture_based'
+});
                     activeTimers.delete(zone.id);
                 }, decision.duration * 60 * 1000);
                 
@@ -1053,11 +1286,11 @@ app.delete('/api/zones/:id', (req, res) => {
     });
 });
 
+
 app.post('/api/zones/:id/start', async (req, res) => {
     const { id } = req.params;
     const { duration } = req.body;
 
-    // Wintersperre prüfen
     if (config.winterMode && config.winterMode.enabled) {
         return res.status(423).json({
             success: false,
@@ -1067,7 +1300,6 @@ app.post('/api/zones/:id/start', async (req, res) => {
     }
 
     try {
-        // Zone-Daten holen für default_duration
         const zone = await new Promise((resolve, reject) => {
             db.get('SELECT * FROM zones WHERE id = ?', [id], (err, row) => {
                 if (err) reject(err);
@@ -1077,9 +1309,17 @@ app.post('/api/zones/:id/start', async (req, res) => {
 
         const finalDuration = duration || zone.default_duration || 10;
 
-        await controlZone(id, true);
+        await controlZone(id, true, {
+            trigger_type: 'manual',
+            trigger_source: 'web_ui',
+            duration: finalDuration
+        });
+
         const timer = setTimeout(async () => {
-            await controlZone(id, false);
+            await controlZone(id, false, {
+                trigger_type: 'manual',
+                trigger_source: 'web_ui'
+            });
             activeTimers.delete(parseInt(id));
         }, finalDuration * 60 * 1000);
 
@@ -1097,6 +1337,7 @@ app.post('/api/zones/:id/start', async (req, res) => {
     }
 });
 
+
 app.post('/api/zones/:id/stop', async (req, res) => {
     const { id } = req.params;
 
@@ -1106,7 +1347,10 @@ app.post('/api/zones/:id/stop', async (req, res) => {
             activeTimers.delete(parseInt(id));
         }
 
-        await controlZone(id, false);
+       await controlZone(id, false, {
+    trigger_type: 'manual',
+    trigger_source: 'web_ui'
+});
 
         res.json({
             success: true,
@@ -1172,42 +1416,55 @@ app.get('/api/winter-mode', (req, res) => {
     res.json(config.winterMode || { enabled: false, activatedAt: null });
 });
 
-// Settings - Daily Check abrufen
+// Settings - Daily Check mit Modus abrufen
 app.get('/api/settings/daily-check', (req, res) => {
     db.all('SELECT * FROM settings WHERE key LIKE "daily_check_%"', (err, rows) => {
         if (err) {
             return res.status(500).json({ error: err.message });
         }
-        
+
         const settings = {};
         rows.forEach(row => {
-            settings[row.key.replace('daily_check_', '')] = row.value;
+            const key = row.key.replace('daily_check_', '');
+            settings[key] = row.value;
         });
-        
+
         res.json({
             enabled: settings.enabled === '1',
-            time: settings.time || '04:00'
+            time: settings.time || '04:00',
+            mode: settings.mode || 'zones',
+            sequence_id: settings.sequence_id ? parseInt(settings.sequence_id) : null
         });
     });
 });
 
-// Settings - Daily Check speichern
+// Settings - Daily Check mit Modus speichern
 app.post('/api/settings/daily-check', (req, res) => {
-    const { enabled, time } = req.body;
-    
+    const { enabled, time, mode, sequence_id } = req.body;
+
     const stmt = db.prepare('INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)');
     stmt.run('daily_check_enabled', enabled ? '1' : '0');
     stmt.run('daily_check_time', time || '04:00');
+    stmt.run('daily_check_mode', mode || 'zones');
+    stmt.run('daily_check_sequence_id', sequence_id || null);
     stmt.finalize((err) => {
         if (err) {
             return res.status(500).json({ error: err.message });
         }
-        
+
         scheduleDailyCheck();
-        
-        res.json({ success: true, message: 'Einstellungen gespeichert' });
+
+        res.json({ 
+            success: true, 
+            message: 'Einstellungen gespeichert',
+            config: { enabled, time, mode, sequence_id }
+        });
     });
 });
+
+
+
+
 
 app.put('/api/zones/:id', (req, res) => {
     const { id } = req.params;
@@ -1342,7 +1599,10 @@ app.post('/api/sequences/:id/start', async (req, res) => {
 
         const zones = JSON.parse(sequence.zones);
 
-        runSequence(zones, sequence.id).catch(err => {
+        runSequence(zones, sequence.id, {
+    trigger_type: 'sequence',
+    trigger_source: 'manual_start'
+}).catch(err => {
             console.error('Fehler beim Ausführen der Sequenz:', err);
         });
 
@@ -1632,6 +1892,31 @@ app.post('/api/mqtt/test', (req, res) => {
             return res.status(500).json({ error: err.message });
         }
         res.json({ success: true, topic, value });
+    });
+});
+
+
+// History abrufen
+app.get('/api/history', (req, res) => {
+    const limit = req.query.limit || 100;
+    const zoneId = req.query.zone_id;
+
+    let sql = 'SELECT * FROM history';
+    let params = [];
+
+    if (zoneId) {
+        sql += ' WHERE zone_id = ?';
+        params.push(zoneId);
+    }
+
+    sql += ' ORDER BY created_at DESC LIMIT ?';
+    params.push(parseInt(limit));
+
+    db.all(sql, params, (err, rows) => {
+        if (err) {
+            return res.status(500).json({ error: err.message });
+        }
+        res.json(rows);
     });
 });
 

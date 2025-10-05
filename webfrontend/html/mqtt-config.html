@@ -267,10 +267,39 @@ function showNotification(message, type = 'success') {
             document.body.appendChild(notif);
             setTimeout(() => notif.remove(), 3000);
         }
+async function saveMqttConfig(event) {
+            event.preventDefault();
+            
+            const config = {
+                enabled: true,
+                broker: document.getElementById('broker').value,
+                username: document.getElementById('username').value,
+                password: document.getElementById('password').value,
+                baseTopic: document.getElementById('baseTopic').value
+            };
 
+            try {
+                const res = await fetch(apiBase + '/api/mqtt/config', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(config)
+                });
+
+                const result = await res.json();
+                
+                if (result.success) {
+                    showNotification('MQTT gespeichert', 'success');
+                    setTimeout(() => loadMqttStatus(), 1000);
+                } else {
+                    showNotification('Fehler', 'error');
+                }
+            } catch (error) {
+                showNotification('Verbindungsfehler', 'error');
+            }
+        }
         init();
 
-        init();
+        
     </script>
 </body>
 </html>

@@ -317,45 +317,58 @@
     <p style="color: #666; margin-bottom: 15px;">
         Automatische Bewässerung basierend auf Wetter und Bodenfeuchtigkeit
     </p>
-    
+
     <div class="form-group">
         <div class="form-checkbox">
             <input type="checkbox" id="dailyCheckEnabled" onchange="toggleDailyCheckSettings()">
             <label for="dailyCheckEnabled" class="form-label">Automatische Prüfung aktivieren</label>
         </div>
-        
+
         <div id="dailyCheckSettings" style="display: none; margin-top: 15px; padding: 15px; background: #f8f9fa; border-radius: 8px;">
             <label style="display: block; margin-bottom: 8px; font-weight: 600; color: #333;">
                 Prüfzeit
             </label>
-            <input type="time" 
-                   id="dailyCheckTime" 
-                   class="form-input" 
+            <input type="time"
+                   id="dailyCheckTime"
+                   class="form-input"
                    value="04:00"
-                   style="width: 150px; margin-bottom: 10px;">
-            <div style="font-size: 12px; color: #666; margin-bottom: 15px;">
-                ℹ️ Empfohlen: Früh morgens (04:00 - 06:00 Uhr)
+                   style="width: 150px; margin-bottom: 15px;">
+
+            <label style="display: block; margin-bottom: 8px; font-weight: 600; color: #333;">
+                Modus
+            </label>
+            <select id="dailyCheckMode" class="form-select" onchange="toggleSequenceSelect()" style="margin-bottom: 15px;">
+                <option value="zones">Einzelne Zonen (basierend auf Feuchtigkeit)</option>
+                <option value="sequence">Sequenz ausführen</option>
+            </select>
+
+            <div id="sequenceSelectGroup" style="display: none; margin-bottom: 15px;">
+                <label style="display: block; margin-bottom: 8px; font-weight: 600; color: #333;">
+                    Sequenz auswählen
+                </label>
+                <select id="dailyCheckSequence" class="form-select">
+                    <option value="">-- Sequenz wählen --</option>
+                </select>
             </div>
-            
+
             <div class="info-box" style="background: #dbeafe; border-left-color: #667eea;">
                 <strong>So funktioniert's:</strong>
                 <ul style="margin: 8px 0 0 20px; font-size: 13px; line-height: 1.6;">
-                    <li>Wintersperre wird geprüft</li>
-                    <li>Regenwahrscheinlichkeit > 70% → keine Bewässerung</li>
-                    <li>Bodenfeuchtigkeit über Schwellwert → Zone übersprungen</li>
-                    <li>Alle Zonen nacheinander mit 2 Min Pause</li>
+                    <li><strong>Einzelzonen-Modus:</strong> Jede Zone wird einzeln geprüft (Feuchtigkeit, Wetter)</li>
+                    <li><strong>Sequenz-Modus:</strong> Eine komplette Sequenz wird ausgeführt</li>
+                    <li>Wintersperre wird immer geprüft</li>
+                    <li>Bei Regenwahrscheinlichkeit > 70% → keine Bewässerung</li>
                 </ul>
             </div>
-            
-            <button onclick="saveDailyCheck()" class="btn-primary" style="margin-top: 15px;">
+
+            <button onclick="saveDailyCheck()" class="btn btn-primary" style="margin-top: 15px;">
                 💾 Speichern
             </button>
-            
+
             <div id="dailyCheckResult" style="margin-top: 10px;"></div>
         </div>
     </div>
 </div>
-
 
         <!-- Zonen Konfiguration -->
         <div class="section">
@@ -747,17 +760,46 @@ async function deleteZone(zoneId) {
         init();
 
 // === Tägliche Bewässerungsprüfung ===
+// === Tägliche Bewässerungsprüfung ===
 async function loadDailyCheck() {
     try {
         const response = await fetch(apiBase + '/api/settings/daily-check');
         const data = await response.json();
-        
+
         document.getElementById('dailyCheckEnabled').checked = data.enabled;
         document.getElementById('dailyCheckTime').value = data.time || '04:00';
-        
+        document.getElementById('dailyCheckMode').value = data.mode || 'zones';
+
+        if (data.mode === 'sequence') {
+            await loadSequencesForDailyCheck();
+            if (data.sequence_id) {
+                document.getElementById('dailyCheckSequence').value = data.sequence_id;
+            }
+        }
+
         toggleDailyCheckSettings();
+        toggleSequenceSelect();
     } catch (error) {
         console.error('Fehler beim Laden:', error);
+    }
+}
+
+async function loadSequencesForDailyCheck() {
+    try {
+        const response = await fetch(apiBase + '/api/sequences');
+        const sequences = await response.json();
+
+        const select = document.getElementById('dailyCheckSequence');
+        select.innerHTML = '<option value="">-- Sequenz wählen --</option>';
+
+        sequences.forEach(seq => {
+            const option = document.createElement('option');
+            option.value = seq.id;
+            option.textContent = seq.name;
+            select.appendChild(option);
+        });
+    } catch (error) {
+        console.error('Fehler beim Laden der Sequenzen:', error);
     }
 }
 
@@ -767,23 +809,41 @@ function toggleDailyCheckSettings() {
     settings.style.display = enabled ? 'block' : 'none';
 }
 
+function toggleSequenceSelect() {
+    const mode = document.getElementById('dailyCheckMode').value;
+    const sequenceGroup = document.getElementById('sequenceSelectGroup');
+    sequenceGroup.style.display = mode === 'sequence' ? 'block' : 'none';
+
+    if (mode === 'sequence') {
+        loadSequencesForDailyCheck();
+    }
+}
+
 async function saveDailyCheck() {
     const enabled = document.getElementById('dailyCheckEnabled').checked;
     const time = document.getElementById('dailyCheckTime').value;
-    
+    const mode = document.getElementById('dailyCheckMode').value;
+    const sequence_id = mode === 'sequence' ? document.getElementById('dailyCheckSequence').value : null;
+
+    if (mode === 'sequence' && !sequence_id) {
+        showResult('dailyCheckResult', '⚠️ Bitte wähle eine Sequenz aus', false);
+        return;
+    }
+
     showResult('dailyCheckResult', 'Speichere...', true);
-    
+
     try {
         const response = await fetch(apiBase + '/api/settings/daily-check', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ enabled, time })
+            body: JSON.stringify({ enabled, time, mode, sequence_id })
         });
-        
+
         const result = await response.json();
-        
+
         if (result.success) {
-            showResult('dailyCheckResult', '✅ Gespeichert! Nächste Prüfung um ' + time + ' Uhr', true);
+            const modeText = mode === 'sequence' ? 'Sequenz-Modus' : 'Einzelzonen-Modus';
+            showResult('dailyCheckResult', `✅ Gespeichert! ${modeText}, nächste Prüfung um ${time} Uhr`, true);
         } else {
             showResult('dailyCheckResult', '❌ Fehler: ' + result.error, false);
         }
@@ -795,7 +855,6 @@ async function saveDailyCheck() {
 document.getElementById('dailyCheckEnabled')?.addEventListener('change', toggleDailyCheckSettings);
 
 loadDailyCheck();
-
     </script>
 </body>
 </html>
