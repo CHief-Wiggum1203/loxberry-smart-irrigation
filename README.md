@@ -412,11 +412,19 @@ smartirrigation/
 - Live Logs
 - Web-Interface
 
+### v1.1.0 (2025-10-05)
+
+- Tägliche automatische Bewässerungsprüfung
+- Konfigurierbare Prüfzeit (Standard: 04:00 Uhr)
+- Berücksichtigt Wetter, Wintersperre und Bodenfeuchtigkeit
+- 2 Minuten Pause zwischen Zonen
+
+
 ## Lizenz
 
 MIT License
 
-Copyright (c) 2025 LoxBerry Community
+Copyright (c) 2025 LB Community
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -438,7 +446,7 @@ SOFTWARE.
 
 ## Credits
 
-Entwickelt von der LoxBerry Community
+Entwickelt von der LB Community
 
 **Verwendete Bibliotheken:**
 - Express.js (MIT)
