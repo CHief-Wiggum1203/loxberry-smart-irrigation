@@ -1,0 +1,556 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Zähneputz-Abenteuer</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            font-family: 'Nunito', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: linear-gradient(160deg, #8ec5fc 0%, #e0c3fc 100%);
+            min-height: 100vh;
+            color: #2d2a44;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .app-card {
+            width: 100%;
+            max-width: 420px;
+            background: rgba(255,255,255,0.95);
+            border-radius: 28px;
+            padding: 28px 24px 32px;
+            box-shadow: 0 25px 60px rgba(69, 55, 110, 0.25);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .back-button {
+            position: absolute;
+            top: 18px;
+            left: 18px;
+            background: rgba(255,255,255,0.8);
+            border: none;
+            border-radius: 18px;
+            padding: 8px 14px;
+            font-size: 14px;
+            color: #5b4b8a;
+            box-shadow: 0 8px 20px rgba(69, 55, 110, 0.15);
+            cursor: pointer;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        .back-button:active {
+            transform: scale(0.97);
+            box-shadow: 0 5px 12px rgba(69, 55, 110, 0.2);
+        }
+
+        .sparkle {
+            position: absolute;
+            width: 180px;
+            height: 180px;
+            border-radius: 50%;
+            background: radial-gradient(circle, rgba(255, 255, 255, 0.75) 0%, rgba(255,255,255,0) 70%);
+            filter: blur(0.5px);
+            animation: float 10s infinite;
+            opacity: 0.4;
+        }
+
+        .sparkle:nth-child(1) { top: -70px; right: -40px; animation-delay: 0s; }
+        .sparkle:nth-child(2) { bottom: -90px; left: -60px; animation-delay: 2.5s; }
+
+        @keyframes float {
+            0%, 100% { transform: translateY(0px); opacity: 0.35; }
+            50% { transform: translateY(15px); opacity: 0.6; }
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 24px;
+        }
+
+        .character {
+            width: 140px;
+            height: 140px;
+            margin: 0 auto 16px;
+            background: linear-gradient(145deg, #ffd6e8, #ffc7b8);
+            border-radius: 40% 40% 38% 38% / 45% 45% 55% 55%;
+            position: relative;
+            overflow: hidden;
+            box-shadow: inset 0 0 0 4px rgba(255,255,255,0.6), 0 12px 30px rgba(255, 136, 168, 0.35);
+        }
+
+        .character::before,
+        .character::after {
+            content: '';
+            position: absolute;
+            background: white;
+        }
+
+        .character::before {
+            width: 38px;
+            height: 38px;
+            border-radius: 50%;
+            top: 45px;
+            left: 32px;
+            box-shadow: 40px 0 0 0 white;
+            animation: blink 5s infinite;
+        }
+
+        .character::after {
+            width: 88px;
+            height: 46px;
+            border-radius: 50% 50% 40% 40%;
+            bottom: 25px;
+            left: 26px;
+            background: #fff;
+            box-shadow: inset 0 -10px 0 rgba(255, 136, 168, 0.45);
+        }
+
+        @keyframes blink {
+            0%, 92%, 100% { transform: scaleY(1); }
+            95% { transform: scaleY(0.1); }
+        }
+
+        .brush {
+            position: absolute;
+            width: 120px;
+            height: 18px;
+            background: #6a55f2;
+            border-radius: 12px;
+            top: 0;
+            left: 50%;
+            transform: translate(-50%, -40px) rotate(10deg);
+            transform-origin: 100% 50%;
+            box-shadow: inset 0 -4px 0 rgba(255,255,255,0.4);
+            animation: brush-move 2.8s ease-in-out infinite;
+        }
+
+        .brush::after {
+            content: '';
+            position: absolute;
+            right: -18px;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 32px;
+            height: 28px;
+            background: #fff;
+            border-radius: 6px;
+            box-shadow: inset 0 -4px 0 rgba(218,230,255,0.8);
+        }
+
+        @keyframes brush-move {
+            0%, 100% { transform: translate(-50%, -40px) rotate(12deg); }
+            50% { transform: translate(-20%, -30px) rotate(-18deg); }
+        }
+
+        h1 {
+            font-size: 28px;
+            margin-bottom: 6px;
+            color: #5b4b8a;
+        }
+
+        .subtitle {
+            color: #8a7cc2;
+            font-size: 16px;
+        }
+
+        .timer-display {
+            margin: 12px auto 18px;
+            width: 180px;
+            height: 180px;
+            border-radius: 50%;
+            border: 10px solid rgba(106, 85, 242, 0.12);
+            background: linear-gradient(145deg, rgba(255,255,255,0.9), rgba(255,255,255,0.75));
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            color: #4b3a9d;
+            font-size: 42px;
+            font-weight: 700;
+            position: relative;
+            box-shadow: 0 20px 40px rgba(106, 85, 242, 0.2);
+        }
+
+        .time-value {
+            font-size: 42px;
+            font-weight: 700;
+            letter-spacing: 0.04em;
+        }
+
+        .timer-display span {
+            font-size: 16px;
+            font-weight: 500;
+            color: #7a6bc8;
+            letter-spacing: 0.05em;
+        }
+
+        .progress-ring {
+            position: absolute;
+            top: -12px;
+            left: -12px;
+            width: calc(100% + 24px);
+            height: calc(100% + 24px);
+            border-radius: 50%;
+            border: 4px dashed rgba(106, 85, 242, 0.25);
+            animation: ring-spin 16s linear infinite;
+        }
+
+        @keyframes ring-spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+
+        .phases {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 12px;
+            margin: 18px 0 24px;
+        }
+
+        .phase {
+            padding: 14px;
+            border-radius: 18px;
+            background: rgba(255,255,255,0.85);
+            border: 2px solid transparent;
+            box-shadow: 0 10px 25px rgba(79, 56, 158, 0.12);
+            transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        .phase.active {
+            border-color: rgba(106, 85, 242, 0.65);
+            transform: translateY(-4px) scale(1.02);
+            box-shadow: 0 14px 28px rgba(106, 85, 242, 0.2);
+        }
+
+        .phase-title {
+            font-weight: 700;
+            color: #5b4b8a;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 6px;
+        }
+
+        .phase-desc {
+            font-size: 14px;
+            color: #7565b2;
+        }
+
+        .controls {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 22px;
+        }
+
+        .control-button {
+            flex: 1;
+            border: none;
+            border-radius: 18px;
+            padding: 14px;
+            font-size: 16px;
+            font-weight: 600;
+            color: white;
+            background: linear-gradient(130deg, #6a55f2, #9c6ee8);
+            box-shadow: 0 14px 30px rgba(106, 85, 242, 0.35);
+            cursor: pointer;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        .control-button:active {
+            transform: scale(0.97);
+            box-shadow: 0 8px 16px rgba(106, 85, 242, 0.4);
+        }
+
+        .control-button.secondary {
+            background: linear-gradient(130deg, #ff9472, #f2709c);
+            box-shadow: 0 14px 30px rgba(242, 112, 156, 0.35);
+        }
+
+        .control-button.ghost {
+            background: rgba(255,255,255,0.85);
+            color: #5b4b8a;
+            border: 2px solid rgba(106, 85, 242, 0.25);
+            box-shadow: none;
+        }
+
+        .control-button.ghost:active {
+            transform: scale(0.97);
+        }
+
+        .status-message {
+            text-align: center;
+            font-size: 18px;
+            font-weight: 600;
+            color: #5b4b8a;
+            min-height: 24px;
+            margin-bottom: 18px;
+        }
+
+        .tip-card {
+            padding: 18px;
+            border-radius: 18px;
+            background: rgba(255,255,255,0.85);
+            box-shadow: 0 16px 32px rgba(90, 72, 148, 0.18);
+            color: #6859a3;
+            font-size: 15px;
+        }
+
+        .tip-card h2 {
+            font-size: 18px;
+            margin-bottom: 10px;
+            color: #5b4b8a;
+        }
+
+        .tip-card ul {
+            list-style: none;
+        }
+
+        .tip-card li {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 8px;
+        }
+
+        .celebration {
+            position: absolute;
+            inset: 0;
+            pointer-events: none;
+            overflow: hidden;
+        }
+
+        .confetti {
+            position: absolute;
+            width: 12px;
+            height: 18px;
+            background: linear-gradient(160deg, #ff9a9e, #fad0c4);
+            opacity: 0;
+            animation: confetti-fall 2.2s ease-out forwards;
+        }
+
+        @keyframes confetti-fall {
+            0% { transform: translateY(-40px) rotate(0deg); opacity: 0; }
+            20% { opacity: 1; }
+            100% { transform: translateY(320px) rotate(360deg); opacity: 0; }
+        }
+
+        footer {
+            text-align: center;
+            margin-top: 26px;
+            font-size: 13px;
+            color: #8679c0;
+        }
+
+        @media (max-width: 480px) {
+            .app-card { padding: 26px 18px 30px; }
+            .controls { flex-direction: column; }
+        }
+    </style>
+</head>
+<body>
+    <div class="app-card">
+        <div class="sparkle"></div>
+        <div class="sparkle"></div>
+        <button class="back-button" onclick="window.location.href='/'">← Zurück</button>
+        <header>
+            <div class="character">
+                <div class="brush"></div>
+            </div>
+            <h1>Zähneputz-Abenteuer</h1>
+            <p class="subtitle">2 Minuten Spaß für strahlende Zähne!</p>
+        </header>
+
+        <div class="timer-display" id="timerDisplay">
+            <div class="progress-ring"></div>
+            <div class="time-value" id="timeValue">02:00</div>
+            <span id="phaseLabel">Bereit?</span>
+        </div>
+
+        <div class="phases" id="phaseGrid">
+            <!-- Dynamischer Inhalt -->
+        </div>
+
+        <div class="status-message" id="statusMessage">Drücke Start und folge den Abschnitten.</div>
+
+        <div class="controls">
+            <button class="control-button" id="startPauseButton">▶️ Start</button>
+            <button class="control-button secondary" id="nextPhaseButton">➡️ Weiter</button>
+            <button class="control-button ghost" id="resetButton">🔄 Reset</button>
+        </div>
+
+        <div class="tip-card">
+            <h2>Tipps für glänzende Zähne</h2>
+            <ul>
+                <li>🪥 Kreise putzen und nicht zu stark drücken.</li>
+                <li>🫧 Vergiss die Kauflächen und Innenflächen nicht.</li>
+                <li>👅 Am Ende Zunge reinigen für frischen Atem.</li>
+            </ul>
+        </div>
+
+        <footer>
+            Jeden Morgen &amp; Abend für ein strahlendes Lächeln.
+        </footer>
+        <div class="celebration" id="celebration"></div>
+    </div>
+
+    <script>
+        const phases = [
+            { title: 'Oben links', desc: 'Kreise an den äußeren Zähnen.', label: 'Links oben' },
+            { title: 'Oben rechts', desc: 'Sanft an den Kauflächen.', label: 'Rechts oben' },
+            { title: 'Unten links', desc: 'Innenflächen nicht vergessen.', label: 'Links unten' },
+            { title: 'Unten rechts', desc: 'Fertig mit einem Lächeln!', label: 'Rechts unten' }
+        ];
+
+        const totalDuration = 120;
+        const phaseDuration = totalDuration / phases.length;
+
+        let remainingSeconds = totalDuration;
+        let timerInterval = null;
+        let isRunning = false;
+
+        const timerDisplay = document.getElementById('timerDisplay');
+        const timeValue = document.getElementById('timeValue');
+        const phaseLabel = document.getElementById('phaseLabel');
+        const statusMessage = document.getElementById('statusMessage');
+        const celebration = document.getElementById('celebration');
+        const startPauseButton = document.getElementById('startPauseButton');
+        const nextPhaseButton = document.getElementById('nextPhaseButton');
+        const resetButton = document.getElementById('resetButton');
+        const phaseGrid = document.getElementById('phaseGrid');
+
+        function initPhases() {
+            phaseGrid.innerHTML = phases.map((phase, index) => `
+                <div class="phase" data-index="${index}">
+                    <div class="phase-title">${index + 1}. ${phase.title}</div>
+                    <div class="phase-desc">${phase.desc}</div>
+                </div>
+            `).join('');
+        }
+
+        function updateTimerDisplay() {
+            const minutes = String(Math.floor(remainingSeconds / 60)).padStart(2, '0');
+            const seconds = String(remainingSeconds % 60).padStart(2, '0');
+            timeValue.textContent = `${minutes}:${seconds}`;
+
+            const currentPhaseIndex = Math.min(
+                phases.length - 1,
+                Math.floor((totalDuration - remainingSeconds) / phaseDuration)
+            );
+
+            document.querySelectorAll('.phase').forEach((phase, index) => {
+                phase.classList.toggle('active', index === currentPhaseIndex);
+            });
+
+            phaseLabel.textContent = remainingSeconds === totalDuration
+                ? 'Bereit?'
+                : phases[currentPhaseIndex].label;
+        }
+
+        function startTimer() {
+            if (isRunning) return;
+            if (remainingSeconds <= 0) {
+                remainingSeconds = totalDuration;
+            }
+
+            isRunning = true;
+            statusMessage.textContent = 'Super! Weiter kreisen!';
+            startPauseButton.textContent = '⏸️ Pause';
+
+            timerInterval = setInterval(() => {
+                remainingSeconds--;
+                updateTimerDisplay();
+
+                if (remainingSeconds <= 0) {
+                    finishTimer();
+                }
+            }, 1000);
+        }
+
+        function pauseTimer() {
+            if (!isRunning) return;
+            isRunning = false;
+            clearInterval(timerInterval);
+            startPauseButton.textContent = '▶️ Weiter';
+            statusMessage.textContent = 'Kleine Pause - gleich weiterputzen!';
+        }
+
+        function finishTimer() {
+            clearInterval(timerInterval);
+            isRunning = false;
+            remainingSeconds = 0;
+            updateTimerDisplay();
+            statusMessage.textContent = 'Fantastisch! Zähne blitzen! ✨';
+            startPauseButton.textContent = '▶️ Nochmal';
+            triggerConfetti();
+        }
+
+        function resetTimer() {
+            clearInterval(timerInterval);
+            isRunning = false;
+            remainingSeconds = totalDuration;
+            updateTimerDisplay();
+            statusMessage.textContent = 'Drücke Start und folge den Abschnitten.';
+            startPauseButton.textContent = '▶️ Start';
+            celebration.innerHTML = '';
+        }
+
+        function nextPhase() {
+            const elapsed = totalDuration - remainingSeconds;
+            const currentPhaseIndex = Math.floor(elapsed / phaseDuration);
+
+            if (currentPhaseIndex < phases.length - 1) {
+                const targetRemaining = totalDuration - (currentPhaseIndex + 1) * phaseDuration;
+                remainingSeconds = Math.max(targetRemaining, 0);
+                updateTimerDisplay();
+                statusMessage.textContent = 'Toll! Weiter geht es!';
+            } else {
+                remainingSeconds = 1;
+                updateTimerDisplay();
+            }
+        }
+
+        function triggerConfetti() {
+            celebration.innerHTML = '';
+            const confettiCount = 22;
+            for (let i = 0; i < confettiCount; i++) {
+                const confetti = document.createElement('div');
+                confetti.className = 'confetti';
+                confetti.style.left = `${Math.random() * 100}%`;
+                confetti.style.animationDelay = `${Math.random() * 0.8}s`;
+                confetti.style.background = `linear-gradient(160deg, ${randomColor()}, ${randomColor()})`;
+                celebration.appendChild(confetti);
+            }
+        }
+
+        function randomColor() {
+            const palette = ['#ff9a9e', '#fad0c4', '#fbc2eb', '#a6c1ee', '#fddb92', '#d1fdff'];
+            return palette[Math.floor(Math.random() * palette.length)];
+        }
+
+        startPauseButton.addEventListener('click', () => {
+            if (isRunning) {
+                pauseTimer();
+            } else {
+                startTimer();
+            }
+        });
+
+        nextPhaseButton.addEventListener('click', nextPhase);
+        resetButton.addEventListener('click', resetTimer);
+
+        initPhases();
+        updateTimerDisplay();
+    </script>
+</body>
+</html>
