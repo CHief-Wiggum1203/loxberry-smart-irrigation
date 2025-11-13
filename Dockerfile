@@ -23,4 +23,4 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
 
 ENV NODE_ENV=production PORT=3000 TZ=Europe/Vienna
 
-CMD ["node", "bin/server.js"]
+CMD ["sh", "-c", "node bin/init-db.js && node bin/server.js"]
