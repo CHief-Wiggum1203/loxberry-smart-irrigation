@@ -9,7 +9,7 @@ RUN apk add --no-cache sqlite curl tzdata
 WORKDIR /app
 
 COPY package*.json ./
-RUN npm ci --only=production
+RUN npm install --production
 
 COPY bin/ ./bin/
 COPY webfrontend/ ./webfrontend/
