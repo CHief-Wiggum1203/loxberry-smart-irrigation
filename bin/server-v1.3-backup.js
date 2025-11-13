@@ -139,8 +139,8 @@ function loadConfig() {
                 weather: {
                     provider: 'open-meteo',
                     apiKey: '',
-                    lat: 48.2082,
-                    lon: 16.3738,
+                    lat: 50.1109,
+                    lon: 8.6821,
                     enabled: true,
                     rainThreshold: 70
                 }

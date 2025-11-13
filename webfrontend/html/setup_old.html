@@ -113,8 +113,8 @@
                 ℹ️ Kostenloser API Key von <a href="https://openweathermap.org/api" target="_blank">OpenWeatherMap</a>
             </div>
             <input type="text" id="weatherApi" placeholder="OpenWeatherMap API Key (optional)">
-            <input type="text" id="weatherLat" placeholder="Breitengrad (z.B. 48.2082)">
-            <input type="text" id="weatherLon" placeholder="Längengrad (z.B. 16.3738)">
+            <input type="text" id="weatherLat" placeholder="Breitengrad (z.B. 50.1109)">
+            <input type="text" id="weatherLon" placeholder="Längengrad (z.B. 8.6821)">
             <button onclick="detectLocation()">📍 Standort ermitteln</button>
         </div>
 
@@ -215,8 +215,8 @@
                 },
                 weather: {
                     apiKey: document.getElementById('weatherApi').value || '',
-                    lat: parseFloat(document.getElementById('weatherLat').value) || 48.2082,
-                    lon: parseFloat(document.getElementById('weatherLon').value) || 16.3738
+                    lat: parseFloat(document.getElementById('weatherLat').value) || 50.1109,
+                    lon: parseFloat(document.getElementById('weatherLon').value) || 8.6821
                 },
                 zones: zones.filter(z => z.valve)
             };

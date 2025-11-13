@@ -265,12 +265,12 @@
 
             <div class="form-group">
                 <label class="form-label">Standort (Breitengrad)</label>
-                <input type="number" class="form-input" id="weatherLat" value="48.2082" step="0.0001" placeholder="48.2082">
+                <input type="number" class="form-input" id="weatherLat" value="50.1109" step="0.0001" placeholder="50.1109">
             </div>
 
             <div class="form-group">
                 <label class="form-label">Standort (Längengrad)</label>
-                <input type="number" class="form-input" id="weatherLon" value="16.3738" step="0.0001" placeholder="16.3738">
+                <input type="number" class="form-input" id="weatherLon" value="8.6821" step="0.0001" placeholder="8.6821">
                 <div class="info-box">
                     💡 Tipp: Google Maps → Rechtsklick auf deinen Standort → "Was ist hier?" → Koordinaten kopieren
                 </div>
@@ -454,8 +454,8 @@ async function init() {
                 if (config.weather) {
                     document.getElementById('weatherProvider').value = config.weather.provider || 'open-meteo';
                     document.getElementById('weatherApiKey').value = config.weather.apiKey || '';
-                    document.getElementById('weatherLat').value = config.weather.lat || 48.2082;
-                    document.getElementById('weatherLon').value = config.weather.lon || 16.3738;
+                    document.getElementById('weatherLat').value = config.weather.lat || 50.1109;
+                    document.getElementById('weatherLon').value = config.weather.lon || 8.6821;
                     document.getElementById('rainThreshold').value = config.weather.rainThreshold || 70;
                     document.getElementById('weatherEnabled').checked = config.weather.enabled !== false;
                     
