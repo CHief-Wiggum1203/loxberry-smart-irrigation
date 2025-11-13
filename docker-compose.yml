@@ -1,0 +1,30 @@
+version: '3.8'
+
+services:
+  smartirrigation:
+    build: .
+    container_name: smart-irrigation
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./data:/app/data
+      - ./config:/app/config
+      - ./backups:/app/backups
+      - ./logs:/app/logs
+    environment:
+      - NODE_ENV=production
+      - TZ=Europe/Vienna
+      - PORT=3000
+    networks:
+      - irrigation-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/api/zones"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+networks:
+  irrigation-network:
+    driver: bridge

@@ -503,3 +503,41 @@ Entwickelt von der LB Community
 ---
 
 **Happy Gardening! 🌱💧**
+
+-----
+
+## 🐳 Docker Installation
+
+### Quick Start mit Docker Compose
+```bash
+# Repository klonen
+git clone https://github.com/Chief-Wiggum1203/loxberry-smart-irrigation.git
+cd loxberry-smart-irrigation
+
+# Container starten
+docker-compose up -d
+```
+
+Web-Interface: `http://localhost:3000`
+
+### Docker Pull von GitHub
+```bash
+docker pull ghcr.io/chief-wiggum1203/loxberry-smart-irrigation:latest
+
+docker run -d \
+  --name smart-irrigation \
+  -p 3000:3000 \
+  -v $(pwd)/data:/app/data \
+  -v $(pwd)/config:/app/config \
+  --restart unless-stopped \
+  ghcr.io/chief-wiggum1203/loxberry-smart-irrigation:latest
+```
+
+### Volumes
+
+- `/app/data` - SQLite Datenbank
+- `/app/config` - Konfigurationsdateien
+- `/app/backups` - Backup-Dateien
+- `/app/logs` - Log-Dateien
+
+-----
